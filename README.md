@@ -1,12 +1,6 @@
 # LiveDiff
 LiveDiff is a portable Windows differencing tool to perform system-level reverse engineering. LiveDiff is specifically developed to perform reverse engineering of application software to aid creating application profiles. LiveDiff is a portable tool designed for use on the Microsoft Windows operating system. 
 
-## Supported Windows Versions
-
-The following Windows operating system versions have been tested:
-
-1. Microsoft Windows 7 Service Pack 1 (32-bit)
-
 ## LiveDiff Usage
 
 LiveDiff is a console application. It needs to be run using the Command Prompt. Running as administrator is preferred as some file system and Windows Registry entries can only be accessed with administrator rights. On Windows 7 you can load the Command Prompt as administrator using the following actions:
@@ -27,7 +21,7 @@ To save snapshots when performing differential analysis use the LiveDiff save ar
 
 `LiveDiff-1.0.0.exe -s`
 
-To load a previously saved snapshot and then collect a second snapshot use the LiveDiff load argument with the snapshot file name (LD1.hivu):
+To load a previously saved snapshot and then collect a second snapshot use the LiveDiff load argument with the snapshot file name (LD1.shot):
 
 `LiveDiff-1.0.0.exe –load LD1.shot`
 
@@ -38,6 +32,12 @@ To load two previously saved snapshots use LiveDiff load argument followed by tw
 LiveDiff can be used to collect and perform differencing on multiple chronological runs. This is known as profile mode, which generates an Application Profile XML (APXML) document. This can be invoked using the profile mode of operation:
 
 `LiveDiff-1.0.0.exe –profile`
+
+## Supported Windows Versions
+
+The following Windows operating system versions have been tested:
+
+1. Microsoft Windows 7 Service Pack 1 (32-bit)
 
 ## License
 
