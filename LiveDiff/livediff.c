@@ -135,11 +135,6 @@ int wmain(DWORD argc, TCHAR *argv[])
 			if (_tcscmp(argv[i], _T("-s")) == 0) {
 				saveSnapShots = TRUE;
 			}
-			// Determine if we are performing SHA1 file hashing
-			//if (_tcscmp(argv[i], _T("-c")) == 0) {
-			//	performSHA1Hashing = TRUE;
-			//	printf("\n  > WARNING: Turning on SHA-1 hashing without dynamic blacklisting is highly inefficient...\n");
-			//}
 			// Detemine if we are performing dynamic blacklisting
 			if (_tcscmp(argv[i], _T("-b")) == 0) {
 				dwBlacklist = 1;
@@ -564,7 +559,9 @@ BOOL snapshotProfileReboot()
 
 	// CREATE AND LOAD BLACKLIST
 	// This is broken now. Because we no longer use a text blacklist.
-	// Alas, how to perform blacklisting when blacklist is stored in volatile memory
+	// Alas, how to perform blacklisting when blacklist is stored in volatile memory??
+	// SOLUTION: Populate blacklist to text file, then reboot
+	
 	includeBlacklist = TRUE;
 	if (includeBlacklist) {
 		//loadBlacklist();			// Load the previously created blacklist
