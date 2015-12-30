@@ -83,6 +83,8 @@ BOOL performBlacklistFiltering;
 BOOL performSHA1Hashing;
 BOOL saveSnapShots;
 
+LPTSTR lpsz_app_state;
+
 // ----------------------------------------------------------------------
 // Definitions for matching status, including modification type
 // ----------------------------------------------------------------------

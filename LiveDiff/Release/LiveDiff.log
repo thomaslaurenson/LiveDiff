@@ -1,0 +1,12 @@
+﻿  dfxml.c
+dfxml.c(509): warning C4133: 'initializing': incompatible types - from 'LPCOMPRESULT' to 'LPKEYCONTENT'
+dfxml.c(528): warning C4133: 'initializing': incompatible types - from 'LPCOMPRESULT' to 'LPVALUECONTENT'
+  fileshot.c
+  livediff.c
+  output.c
+  blacklist.c
+  regshot.c
+  Generating code
+  All 91 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Finished generating code
+  LiveDiff.vcxproj -> C:\Users\forensic\Desktop\LiveDiff\Release\LiveDiff.exe

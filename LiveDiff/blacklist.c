@@ -180,6 +180,47 @@ trieNode_t* TrieSearch(trieNode_t *root, const wchar_t *key)
 	}
 }
 
+//-----------------------------------------------------------------
+// Search the Trie (Prefix Tree) for a specific entry
+//-----------------------------------------------------------------
+BOOL TrieSearch1(trieNode_t *root, const wchar_t *key)
+{
+	trieNode_t *level = root;
+	trieNode_t *pPtr = NULL;
+	//printf("KEY: %ws\n", key);
+	int lvl = 0;
+	while (1)
+	{
+		trieNode_t *found = NULL;
+		trieNode_t *curr;
+
+		for (curr = level; curr != NULL; curr = curr->next)
+		{
+			//printf("CURRENT KEY: %c\n", curr->key);
+			//printf("%d\n", lvl);
+			if (curr->key == *key)
+			{
+				found = curr;
+				lvl++;
+				break;
+			}
+		}
+
+		if (found == NULL)
+			return FALSE;
+
+		if (*key == '\0')
+		{
+			pPtr = curr;
+			//printf("FOUND!\n");
+			return TRUE;
+		}
+
+		level = found->children;
+		key++;
+	}
+}
+
 
 //-----------------------------------------------------------------
 // Remove a Trie (Prefix Tree) Node

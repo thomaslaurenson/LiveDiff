@@ -398,6 +398,10 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 			xml_outa2s(hFile, TEXT("hashdigest"), TEXT("type='sha1'"), lpszsha1Hash);
 		}
 	}
+
+	// Write application life cycle phase (app_state) element
+	xml_out2s(hFile, TEXT("app_state"), lpsz_app_state);
+
 	// Write FileObject end element 
 	xml_ctagout(hFile, TEXT("fileobject"));
 	//MYFREE(normFileName);
@@ -598,7 +602,7 @@ VOID PopulateCellObject(HANDLE hFile, DWORD nActionType, LPCOMPRESULT lpCR)
 		// Finally, add a new RegXML element type: raw_data (this stored the Registry value data in hexadecimal)
 		// This is for matching purposes, because most Registry parsing tools encode value data differently
 		lpszRawData = ParseValueData(lpData, cbData, REG_BINARY);
-		xml_out2s(hFile, TEXT("raw_data"), lpszRawData);
+		xml_out2s(hFile, TEXT("data_raw"), lpszRawData);
 	}
 
 	// Determine allocation then write
@@ -609,6 +613,9 @@ VOID PopulateCellObject(HANDLE hFile, DWORD nActionType, LPCOMPRESULT lpCR)
 		lpszAlloc = TEXT("1");
 	}
 	xml_out2s(hFile, TEXT("alloc"), lpszAlloc);
+
+	// Write application life cycle phase (app_state) element
+	xml_out2s(hFile, TEXT("app_state"), lpsz_app_state);
 
 	// Close the cellobject tag
 	xml_ctagout(hFile, TEXT("cellobject"));
