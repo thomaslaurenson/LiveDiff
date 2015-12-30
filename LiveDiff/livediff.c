@@ -26,6 +26,8 @@ LPTSTR lpszCommandline;		// The LiveDiff command line
 LPTSTR lpszWindowsVersion;	// The Windows version number
 LPTSTR lpszStartDate;		// Program start date
 
+LPTSTR lpsz_app_state;
+
 //-----------------------------------------------------------------
 // LiveDiff wmain function
 //-----------------------------------------------------------------
@@ -515,9 +517,12 @@ BOOL snapshotProfile()
 
 		// Insert comparison results to parent tag body
 		printf("\n>>> Generating output...\n");
-		StartAPXMLTag(lpszLifeCycleState);
+		//StartAPXMLTag(lpszLifeCycleState);
+		size_t cchlpszLifeCycleState = _tcslen(lpszLifeCycleState);
+		lpsz_app_state = MYALLOC0(cchlpszLifeCycleState * sizeof(TCHAR));
+		_tcscpy(lpsz_app_state, lpszLifeCycleState);
 		GenerateAPXMLReport();
-		EndAPXMLTag(lpszLifeCycleState);
+		//EndAPXMLTag(lpszLifeCycleState);
 
 		// Done.
 		printf("\n>>> Finished.\n");
