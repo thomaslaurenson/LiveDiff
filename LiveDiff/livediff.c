@@ -519,7 +519,7 @@ BOOL snapshotProfile()
 		printf("\n>>> Generating output...\n");
 		//StartAPXMLTag(lpszLifeCycleState);
 		size_t cchlpszLifeCycleState = _tcslen(lpszLifeCycleState);
-		lpsz_app_state = MYALLOC0(cchlpszLifeCycleState * sizeof(TCHAR));
+		lpsz_app_state = MYALLOC0((cchlpszLifeCycleState + 1) * sizeof(TCHAR));
 		_tcscpy(lpsz_app_state, lpszLifeCycleState);
 		GenerateAPXMLReport();
 		//EndAPXMLTag(lpszLifeCycleState);
