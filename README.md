@@ -1,6 +1,16 @@
 # LiveDiff
 LiveDiff is a portable Windows differencing tool to perform system-level reverse engineering. LiveDiff is specifically developed to perform reverse engineering of application software to aid creating application profiles. LiveDiff is a portable tool designed for use on the Microsoft Windows operating system. 
 
+## LiveDiff Availability
+
+The source code for LiveDiff is distributed on GitHub: 
+
+`https://github.com/thomaslaurenson/LiveDiff`
+
+Precompiled binaries for Microsoft Windows can be found on the GitHub releases page:
+
+`https://github.com/thomaslaurenson/LiveDiff/releases`
+
 ## LiveDiff Usage
 
 LiveDiff is a console application. It needs to be run using the Command Prompt. Running as administrator is preferred as some file system and Windows Registry entries can only be accessed with administrator rights. On Windows 7 you can load the Command Prompt as administrator using the following actions:
