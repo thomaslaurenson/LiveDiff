@@ -20,8 +20,6 @@ along with LiveDiff.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "global.h"
 
-HANDLE hFileDFXML;		// DFXML report file handle
-HANDLE hFileREGXML;		// RegXML report file handle
 HANDLE hFileAPXML;		// Application Profile file handle
 DWORD cbCRLF;
 
@@ -253,59 +251,6 @@ BOOL xml_check_control(LPTSTR value)
 //-----------------------------------------------------------------
 // XML REPORTING STARTS HERE!
 //-----------------------------------------------------------------
-// Create a DFXML header with metadata and Dublic Core (DC)
-//----------------------------------------------------------------- 
-VOID StartDFXML(BOOL includeCounts) 
-{
-	LPTSTR lpszXMLHeader	= TEXT("?xml version='1.0' encoding='UTF-16' ?");
-	LPTSTR lpszDFXML		= TEXT("<dfxml version = '1.1.0'\n");
-	LPTSTR lpszDFXMLNS		= TEXT("       xmlns='http://www.forensicswiki.org/wiki/Category:Digital_Forensics_XML'\n");
-	LPTSTR lpszDFXMLDelta	= TEXT("       xmlns:delta='http://www.forensicswiki.org/wiki/Forensic_Disk_Differencing'\n");
-	LPTSTR lpszDFXMLXSI		= TEXT("       xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'\n");
-	LPTSTR lpszDFXMLDC		= TEXT("       xmlns:dc='http://purl.org/dc/elements/1.1/' >\n");
-	TCHAR deltaCount[64];
-	
-	// Write DFXML header and XML namespace
-	xml_tagout(hFileDFXML, lpszXMLHeader, TEXT(""));
-	WriteFile(hFileDFXML, lpszDFXML, (DWORD)(_tcslen(lpszDFXML) * sizeof(TCHAR)), &NBW, NULL);
-	WriteFile(hFileDFXML, lpszDFXMLNS, (DWORD)(_tcslen(lpszDFXMLNS) * sizeof(TCHAR)), &NBW, NULL);
-	WriteFile(hFileDFXML, lpszDFXMLDelta, (DWORD)(_tcslen(lpszDFXMLDelta) * sizeof(TCHAR)), &NBW, NULL);
-	WriteFile(hFileDFXML, lpszDFXMLXSI, (DWORD)(_tcslen(lpszDFXMLXSI) * sizeof(TCHAR)), &NBW, NULL);
-	WriteFile(hFileDFXML, lpszDFXMLDC, (DWORD)(_tcslen(lpszDFXMLDC) * sizeof(TCHAR)), &NBW, NULL);
-
-	// Write metadata element
-	xml_tagout(hFileDFXML, TEXT("metadata"), TEXT(""));
-	xml_out2s(hFileDFXML, TEXT("dc:type"), TEXT("Detected Files from Live Differential Analysis"));
-	xml_out2s(hFileDFXML, TEXT("dc:publisher"), TEXT("thomaslaurenson.com"));
-	xml_ctagout(hFileDFXML, TEXT("metadata"));
-
-	// Write creator element
-	xml_tagout(hFileDFXML, TEXT("creator"), TEXT("version='1.0'"));
-	xml_out2s(hFileDFXML, TEXT("program"), TEXT("LiveDiff.exe"));
-	xml_out2s(hFileDFXML, TEXT("version"), TEXT("1.0.0"));
-	xml_ctagout(hFileDFXML, TEXT("creator"));
-
-	// Write all digital artifact delta counts, if requested
-	if (includeCounts) 
-	{
-		xml_tagout(hFileDFXML, TEXT("delta_count"), TEXT(""));
-		_itot_s(CompareResult.stcAdded.cFiles, deltaCount, 64, 10);
-		xml_out2s(hFileDFXML, TEXT("new_files"), deltaCount);
-		_itot_s(CompareResult.stcModified.cFiles, deltaCount, 64, 10);
-		xml_out2s(hFileDFXML, TEXT("mod_files"), deltaCount);
-		_itot_s(CompareResult.stcDeleted.cFiles, deltaCount, 64, 10);
-		xml_out2s(hFileDFXML, TEXT("del_files"), deltaCount);
-		_itot_s(CompareResult.stcAdded.cDirs, deltaCount, 64, 10);
-		xml_out2s(hFileDFXML, TEXT("new_dirs"), deltaCount);
-		_itot_s(CompareResult.stcModified.cDirs, deltaCount, 64, 10);
-		xml_out2s(hFileDFXML, TEXT("mod_dirs"), deltaCount);
-		_itot_s(CompareResult.stcDeleted.cDirs, deltaCount, 64, 10);
-		xml_out2s(hFileDFXML, TEXT("del_dirs"), deltaCount);
-		xml_ctagout(hFileDFXML, TEXT("delta_count"));
-	}
-}
-
-//-----------------------------------------------------------------
 // Populate DFXML FileObject from LPFILECONTENT
 //----------------------------------------------------------------- 
 VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
@@ -405,65 +350,6 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 	// Write FileObject end element 
 	xml_ctagout(hFile, TEXT("fileobject"));
 	//MYFREE(normFileName);
-}
-
-//-----------------------------------------------------------------
-// Close DFXML report
-//----------------------------------------------------------------- 
-VOID EndDFXML() 
-{
-	xml_ctagout(hFileDFXML, TEXT("dfxml"));
-}
-
-//-----------------------------------------------------------------
-// Create a RegXML header with metadata and Dublic Core (DC)
-//----------------------------------------------------------------- 
-VOID StartREGXML(BOOL includeCounts)
-{
-	LPTSTR lpszXMLHeader	= TEXT("?xml version='1.0' encoding='UTF-16' ?");
-	LPTSTR lpszDFXML		= TEXT("<regxml version = '1.1.0'\n");
-	LPTSTR lpszDFXMLNS		= TEXT("        xmlns='http://www.forensicswiki.org/wiki/RegXML'\n");
-	LPTSTR lpszDFXMLDelta	= TEXT("        xmlns:delta='http://www.forensicswiki.org/wiki/Forensic_Disk_Differencing'\n");
-	LPTSTR lpszDFXMLXSI		= TEXT("        xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'\n");
-	LPTSTR lpszDFXMLDC		= TEXT("        xmlns:dc='http://purl.org/dc/elements/1.1/' >\n");
-	TCHAR deltaCount[64];
-
-	// Write DFXML header and XML namespace
-	xml_tagout(hFileREGXML, lpszXMLHeader, TEXT(""));
-	WriteFile(hFileREGXML, lpszDFXML, (DWORD)(_tcslen(lpszDFXML) * sizeof(TCHAR)), &NBW, NULL);
-	WriteFile(hFileREGXML, lpszDFXMLNS, (DWORD)(_tcslen(lpszDFXMLNS) * sizeof(TCHAR)), &NBW, NULL);
-	WriteFile(hFileREGXML, lpszDFXMLDelta, (DWORD)(_tcslen(lpszDFXMLDelta) * sizeof(TCHAR)), &NBW, NULL);
-	WriteFile(hFileREGXML, lpszDFXMLXSI, (DWORD)(_tcslen(lpszDFXMLXSI) * sizeof(TCHAR)), &NBW, NULL);
-	WriteFile(hFileREGXML, lpszDFXMLDC, (DWORD)(_tcslen(lpszDFXMLDC) * sizeof(TCHAR)), &NBW, NULL);
-
-	// Write metadata element
-	xml_tagout(hFileREGXML, TEXT("metadata"), TEXT(""));
-	xml_out2s(hFileREGXML, TEXT("dc:type"), TEXT("Detected Registry Entries from Live Differential Analysis"));
-	xml_out2s(hFileREGXML, TEXT("dc:publisher"), TEXT("thomaslaurenson.com"));
-	xml_ctagout(hFileREGXML, TEXT("metadata"));
-
-	// Write creator element
-	xml_tagout(hFileREGXML, TEXT("creator"), TEXT("version='1.0'"));
-	xml_out2s(hFileREGXML, TEXT("program"), TEXT("LiveDiff.exe"));
-	xml_out2s(hFileREGXML, TEXT("version"), TEXT("1.0.0"));
-	xml_ctagout(hFileREGXML, TEXT("creator"));
-
-	// Write all digital artifact delta counts, if requested
-	if (includeCounts) 
-	{
-		xml_tagout(hFileREGXML, TEXT("delta_count"), TEXT(""));
-		_itot_s(CompareResult.stcAdded.cKeys, deltaCount, 64, 10);
-		xml_out2s(hFileREGXML, TEXT("new_keys"), deltaCount);
-		_itot_s(CompareResult.stcDeleted.cKeys, deltaCount, 64, 10);
-		xml_out2s(hFileREGXML, TEXT("del_keys"), deltaCount);
-		_itot_s(CompareResult.stcAdded.cValues, deltaCount, 64, 10);
-		xml_out2s(hFileREGXML, TEXT("new_values"), deltaCount);
-		_itot_s(CompareResult.stcModified.cValues, deltaCount, 64, 10);
-		xml_out2s(hFileREGXML, TEXT("mod_values"), deltaCount);
-		_itot_s(CompareResult.stcDeleted.cValues, deltaCount, 64, 10);
-		xml_out2s(hFileREGXML, TEXT("del_values"), deltaCount);
-		xml_ctagout(hFileREGXML, TEXT("delta_count"));
-	}
 }
 
 //-----------------------------------------------------------------
@@ -622,14 +508,6 @@ VOID PopulateCellObject(HANDLE hFile, DWORD nActionType, LPCOMPRESULT lpCR)
 
 	// Free the allocated memory
 	MYFREE(lpszCellPath);
-}
-
-//-----------------------------------------------------------------
-// Close RegXML report
-//----------------------------------------------------------------- 
-VOID EndREGXML() 
-{
-	xml_ctagout(hFileREGXML, TEXT("regxml"));
 }
 
 //-----------------------------------------------------------------

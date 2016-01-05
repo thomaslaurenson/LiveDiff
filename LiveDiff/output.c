@@ -37,22 +37,12 @@ VOID ParseLPCompResultsFile(DWORD nActionType, LPCOMPRESULT lpStartCR)
 	for (lpCR = lpStartCR; NULL != lpCR; lpCR = lpCR->lpNextCR) {
 		if ((nActionType == DIRADD) || (nActionType == DIRMODI) || (nActionType == FILEADD) || (nActionType == FILEMODI)) {
 			if (NULL != lpCR->lpContentNew) {
-				if (NULL != hFileAPXML) {
-					PopulateFileObject(hFileAPXML, nActionType, lpCR->lpContentNew);
-				}
-				else {
-					PopulateFileObject(hFileDFXML, nActionType, lpCR->lpContentNew);
-				}
+				PopulateFileObject(hFileAPXML, nActionType, lpCR->lpContentNew);
 			}
 		}
 		if ((nActionType == DIRDEL) || (nActionType == FILEDEL)) {
 			if (NULL != lpCR->lpContentOld) {
-				if (NULL != hFileAPXML) {
-					PopulateFileObject(hFileAPXML, nActionType, lpCR->lpContentOld);
-				}
-				else {
-					PopulateFileObject(hFileDFXML, nActionType, lpCR->lpContentOld);
-				}
+				PopulateFileObject(hFileAPXML, nActionType, lpCR->lpContentOld);
 			}
 		}
 	}
@@ -68,133 +58,15 @@ VOID ParseLPCompResultsRegistry(DWORD nActionType, LPCOMPRESULT lpStartCR)
 	for (lpCR = lpStartCR; NULL != lpCR; lpCR = lpCR->lpNextCR) {
 		if ((nActionType == KEYADD) || (nActionType == VALADD) || (nActionType == VALMODI)) {
 			if (NULL != lpCR->lpContentNew) {
-				if (NULL != hFileAPXML) {
-					PopulateCellObject(hFileAPXML, nActionType, lpCR->lpContentNew);
-				}
-				else {
-					PopulateCellObject(hFileREGXML, nActionType, lpCR->lpContentNew);
-				}
+				PopulateCellObject(hFileAPXML, nActionType, lpCR->lpContentNew);
 			}
 		}
 		if ((nActionType == KEYDEL) || (nActionType == VALDEL)) {
 			if (NULL != lpCR->lpContentOld) {
-				if (NULL != hFileAPXML) {
-					PopulateCellObject(hFileAPXML, nActionType, lpCR->lpContentOld);
-				}
-				else {
-					PopulateCellObject(hFileREGXML, nActionType, lpCR->lpContentOld);
-				}
+				PopulateCellObject(hFileAPXML, nActionType, lpCR->lpContentOld);
 			}
 		}
 	}
-}
-
-// ----------------------------------------------------------------------
-// Create DFXML and RegXML reports of system changes between 2 snapshots
-// ----------------------------------------------------------------------
-BOOL OutputComparisonResult(VOID) 
-{
-	LPTSTR lpszOutputPath;
-	LPTSTR lpszReportBaseName = TEXT("LiveDiff");
-	LPTSTR lpszDFXMLExtension = TEXT(".dfxml");
-	LPTSTR lpszREGXMLExtension = TEXT(".regxml");
-	LPTSTR lpszDFXMLDestFileName;
-	LPTSTR lpszREGXMLDestFileName;
-	DWORD  nBufferSize = 2048;
-	size_t cchString;
-
-	// Allocate space for file names
-	lpszOutputPath = MYALLOC0(EXTDIRLEN * sizeof(TCHAR));
-	lpszDFXMLDestFileName = MYALLOC0(EXTDIRLEN * sizeof(TCHAR));
-	lpszREGXMLDestFileName = MYALLOC0(EXTDIRLEN * sizeof(TCHAR));
-
-	// Get the current directory to save report files in
-	GetCurrentDirectory(_tcslen(lpszOutputPath), lpszOutputPath);
-
-	cchString = _tcslen(lpszOutputPath);
-	if ((0 < cchString) && ((TCHAR)'\\' != *(lpszOutputPath + cchString - 1))) {
-		*(lpszOutputPath + cchString) = (TCHAR)'\\';
-		*(lpszOutputPath + cchString + 1) = (TCHAR)'\0';
-		cchString++;
-	}
-	// Create DFXML report file handle
-	_tcscpy(lpszDFXMLDestFileName, lpszOutputPath);
-	_tcscpy(lpszDFXMLDestFileName, lpszReportBaseName);
-	cchString = _tcslen(lpszDFXMLDestFileName);
-	_tcscat(lpszDFXMLDestFileName, lpszDFXMLExtension);
-	DWORD filetail = 0;
-	for (filetail = 0; MAXAMOUNTOFFILE > filetail; filetail++) {
-		_sntprintf(lpszDFXMLDestFileName + cchString, 6, TEXT("_%04u\0"), filetail);
-		_tcscpy(lpszDFXMLDestFileName + cchString + 5, lpszDFXMLExtension);
-		hFileDFXML = CreateFile(lpszDFXMLDestFileName, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
-		if (INVALID_HANDLE_VALUE == hFileDFXML) {
-			if (ERROR_FILE_EXISTS == GetLastError()) {
-				continue;
-			}
-			else {
-				printf("\n>>> Error creating output DFXML report.");
-				return FALSE;
-			}
-		}
-		else {
-			break;
-		}
-	}
-
-	// Create RegXML report file handle
-	_tcscpy(lpszREGXMLDestFileName, lpszOutputPath);
-	_tcscat(lpszREGXMLDestFileName, lpszReportBaseName);
-	cchString = _tcslen(lpszREGXMLDestFileName);
-	_tcscat(lpszREGXMLDestFileName, lpszREGXMLExtension);
-	for (filetail = 0; MAXAMOUNTOFFILE > filetail; filetail++) {
-		_sntprintf(lpszREGXMLDestFileName + cchString, 6, TEXT("_%04u\0"), filetail);
-		_tcscpy(lpszREGXMLDestFileName + cchString + 5, lpszREGXMLExtension);
-		hFileREGXML = CreateFile(lpszREGXMLDestFileName, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
-		if (INVALID_HANDLE_VALUE == hFileREGXML) {
-			if (ERROR_FILE_EXISTS == GetLastError()) {
-				continue;
-			}
-			else {
-				printf("\n>>> Error creating output DFXML report.");
-				return FALSE;
-			}
-		}
-		else {
-			break;
-		}
-	}
-
-	// TL: Start making DFXML
-	StartDFXML(TRUE);
-	// FILE SYSTEM (DIRECTORY) REPORTING! (new, modified, and deleted file system directories
-	if (0 != CompareResult.stcAdded.cDirs) { ParseLPCompResultsFile(DIRADD, CompareResult.stCRHeads.lpCRDirAdded); }
-	if (0 != CompareResult.stcModified.cDirs) { ParseLPCompResultsFile(DIRMODI, CompareResult.stCRHeads.lpCRDirModified); }
-	if (0 != CompareResult.stcDeleted.cDirs) { ParseLPCompResultsFile(DIRDEL, CompareResult.stCRHeads.lpCRDirDeleted); }
-	// FILE SYSTEM (DATA FILES) REPORTING! (new, modified, and deleted data files
-	if (0 != CompareResult.stcAdded.cFiles) { ParseLPCompResultsFile(FILEADD, CompareResult.stCRHeads.lpCRFileAdded); }
-	if (0 != CompareResult.stcModified.cFiles) { ParseLPCompResultsFile(FILEMODI, CompareResult.stCRHeads.lpCRFileModified); }
-	if (0 != CompareResult.stcDeleted.cFiles) { ParseLPCompResultsFile(FILEDEL, CompareResult.stCRHeads.lpCRFileDeleted); }
-	EndDFXML();
-
-	// TL: Start making RegXML
-	StartREGXML(TRUE);
-	// REGISTRY KEY REPORTING! (new and deleted Registry keys)
-	if (0 != CompareResult.stcAdded.cKeys) { ParseLPCompResultsRegistry(KEYADD, CompareResult.stCRHeads.lpCRKeyAdded); }
-	if (0 != CompareResult.stcDeleted.cKeys) { ParseLPCompResultsRegistry(KEYDEL, CompareResult.stCRHeads.lpCRKeyDeleted); }
-	// REGISTRY VALUE REPORTING! (new, modified and deleted Registry values)
-	if (0 != CompareResult.stcAdded.cValues) { ParseLPCompResultsRegistry(VALADD, CompareResult.stCRHeads.lpCRValAdded); }
-	if (0 != CompareResult.stcModified.cValues) { ParseLPCompResultsRegistry(VALMODI, CompareResult.stCRHeads.lpCRValModified); }
-	if (0 != CompareResult.stcDeleted.cValues) { ParseLPCompResultsRegistry(VALDEL, CompareResult.stCRHeads.lpCRValDeleted); }
-	EndREGXML();
-
-	// Close file handles
-	CloseHandle(hFileDFXML);
-	CloseHandle(hFileREGXML);
-	
-	// All done. Free stuff. Return True.
-	MYFREE(lpszDFXMLDestFileName);
-	MYFREE(lpszREGXMLDestFileName);
-	return TRUE;
 }
 
 // ----------------------------------------------------------------------

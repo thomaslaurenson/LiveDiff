@@ -77,10 +77,10 @@ int wmain(DWORD argc, TCHAR *argv[])
 	determineWindowsVersion();
 
 	// modeOfOperation dictates what to do:
-	// SCAN = capture, then compare snapshots (default)
-	// LOAD = load one or two snapshots, then compare (triggered with "-l" argument)
-	// PROFILE = capture until we have had enough!
-	LPTSTR modeOfOperation = TEXT("SCAN");
+	// LOAD = load one or two snapshots, then compare (triggered with "--load" argument)
+	// PROFILE = looped snapshot comparison procedure (default)
+	// PROFILEREBOOT = continue profile mode after reboot
+	LPTSTR modeOfOperation = TEXT("PROFILE");
 
 	//-----------------------------------------------------------------
 	// If an argument is given (e.g., LiveDiff.exe -s, LiveDiff.exe -h) parse arguments
@@ -95,20 +95,17 @@ int wmain(DWORD argc, TCHAR *argv[])
 			printf("             DFXML forensic data abstraction.\n\n");
 			printf("      Usage: LiveDiff.exe [mode] [options]\n\n");
 			printf("       Mode: Operational mode for LiveDiff [default --scan]\n");
-			printf("             --scan            Scan system and produce differential report\n");
-			printf("             --load            Load one, or two snapshot files\n");
 			printf("             --profile         Profile mode, generate APXML profile\n");
 			printf("             --profile-reboot  Profile mode after system reboot\n\n");
+			printf("             --load            Load one, or two snapshot files\n");
 			printf("    Options: -s Save snapshot files [default FALSE]\n");
-			printf("             -b Use file and Registry entry blacklists [default FALSE]\n");
-			// Currently removes this option to SHA1 files
-			//printf("             -c Perform SHA-1 file hashing [default FALSE]\n");
-			//printf("                NOTE: Not recommended without dynamic blacklists\n\n");
+			printf("             -b Use dynamic blacklists [default TRUE]\n");
+			printf("             -k Use static blacklists [default FALSE]\n");
 			printf("   Examples: LiveDiff.exe\n");
+			printf("             LiveDiff.exe --profile\n\n");
 			printf("             LiveDiff.exe -s\n");
 			printf("             LiveDiff.exe -b\n");
 			printf("             LiveDiff.exe --load 1.shot 2.shot\n");
-			printf("             LiveDiff.exe --profile\n\n");
 			return 0;
 		}
 		
@@ -161,16 +158,7 @@ int wmain(DWORD argc, TCHAR *argv[])
 	}
 
 	// From here, call the appropriate function for mode of operation selected by user
-	if (modeOfOperation == TEXT("SCAN")) 
-	{
-		// Call scan function
-		snapshotScan();
-		// Print program clock timer
-		endProgramClockTimer = clock() - startProgramClockTimer;
-		msec = endProgramClockTimer * 1000 / CLOCKS_PER_SEC;
-		printf("\n>>> Program run time: %d seconds %d milliseconds\n", msec / 1000, msec % 1000);
-	}
-	else if (modeOfOperation == TEXT("LOAD"))
+	if (modeOfOperation == TEXT("LOAD"))
 	{
 		// Call load function
 		snapshotLoad(loadFileName1, loadFileName2);
@@ -294,33 +282,6 @@ BOOL performShotTwo()
 	return TRUE;
 }
 
-//-----------------------------------------------------------------
-// LiveDiff Scanning mode of operation (default)
-//-----------------------------------------------------------------
-BOOL snapshotScan()
-{
-	printf("\n>>> SCANNING MODE...\n");
-	printf("  > Capture two (2) snapshots, then compare...\n");
-
-	// SHOT ONE
-	performShotOne();
-	// SHOT TWO
-	performShotTwo();
-
-	// Compare Shot 1 and Shot 2 and display result overview
-	printf("\n>>> Comparing snapshots...\n");
-	CompareShots();
-	DisplayResultInfo();
-
-	// Now, produce DFXML and RegXML reports
-	printf("\n>>> Generating output...\n");
-	OutputComparisonResult();
-
-	// Done. So exit!
-	printf("\n>>> Finished.\n");
-	return TRUE;
-}
-
 
 //-----------------------------------------------------------------
 // LiveDiff Loading mode of operation (load 1 or 2 snapshots)
@@ -368,7 +329,8 @@ BOOL snapshotLoad(LPTSTR loadFileName1, LPTSTR loadFileName2)
 
 	// Now, produce DFXML and RegXML reports
 	printf("\n>>> Generating output...\n");
-	OutputComparisonResult();
+	// Need to update to output to APXML here
+	//OutputComparisonResult();
 
 	// Done. So exit!
 	printf("\n>>> Finished.\n");
