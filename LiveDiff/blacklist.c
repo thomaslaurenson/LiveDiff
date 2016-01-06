@@ -20,7 +20,6 @@ along with LiveDiff.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "global.h"
 
-
 //-----------------------------------------------------------------
 // Create the Trie (Prefix Tree)
 //-----------------------------------------------------------------
@@ -28,7 +27,6 @@ void TrieCreate(trieNode_t **root)
 {
 	*root = TrieCreateNode('\0');
 }
-
 
 //-----------------------------------------------------------------
 // Create a Trie (Prefix Tree) Node
@@ -50,7 +48,6 @@ trieNode_t *TrieCreateNode(wchar_t key)
 	node->prev = NULL;
 	return node;
 }
-
 
 //-----------------------------------------------------------------
 // Add a Trie (Prefix Tree) Node
@@ -142,7 +139,6 @@ void TrieAdd(trieNode_t **root, wchar_t *key)
 	return;
 }
 
-
 //-----------------------------------------------------------------
 // Check the Trie (Prefix Tree) for a dulplicate value
 //-----------------------------------------------------------------
@@ -221,7 +217,6 @@ BOOL TrieSearch1(trieNode_t *root, const wchar_t *key)
 	}
 }
 
-
 //-----------------------------------------------------------------
 // Remove a Trie (Prefix Tree) Node
 //-----------------------------------------------------------------
@@ -282,7 +277,6 @@ void TrieRemove(trieNode_t **root, wchar_t *key)
 	//printf("Deleted key [%ws] from trie\n", key);
 }
 
-
 //-----------------------------------------------------------------
 // Destroy the Trie (Prefix Tree)
 //-----------------------------------------------------------------
@@ -336,4 +330,40 @@ void TrieDestroy(trieNode_t* root)
 		}
 	}
 
+}
+
+//-----------------------------------------------------------------
+// Load the static blacklists into Trie (Prefix Tree)
+//-----------------------------------------------------------------
+BOOL populateTextBlacklist(LPTSTR lpszFileName, trieNode_t * blacklist)
+{
+	wchar_t line[MAX_PATH];
+
+	FILE *hFile;
+	hFile = _wfopen(lpszFileName, L"rb, ccs=UTF-16LE");
+
+	int i = 0;
+
+	while (fgetws(line, MAX_PATH, hFile))
+	{
+		// Remove newline character
+		if (line[_tcslen(line) - 1] == (TCHAR)'\n') {
+			line[_tcslen(line) - 1] = (TCHAR)'\0';
+		}
+
+		// Remove carrige return character
+		if (line[_tcslen(line) - 1] == (TCHAR)'\r') {
+			line[_tcslen(line) - 1] = (TCHAR)'\0';
+		}
+
+		// If line does not start with a hash ('#'), add to blacklist
+		if (line[0] != (TCHAR)'#')
+		{
+			TrieAdd(&blacklist, line);
+		}
+	}
+
+	// All done with loading file, so close file handle
+	fclose(hFile);
+	return TRUE;
 }

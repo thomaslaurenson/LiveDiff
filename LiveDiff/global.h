@@ -25,7 +25,6 @@ along with LiveDiff.  If not, see <http://www.gnu.org/licenses/>.
 #include <windows.h>
 #include <stdio.h>
 #include <shlobj.h>
-//#include <stddef.h>  // for "offsetof" macro
 #include <string.h>
 #include <tchar.h>
 #include <time.h>
@@ -511,8 +510,7 @@ trieNode_t *blacklistHKU;
 // livediff.c global functions
 VOID determineWindowsVersion();
 BOOL generateBlacklist();
-BOOL loadBlacklist();
-BOOL snapshotScan();
+BOOL populateTextBlacklist(LPTSTR lpszFileName, trieNode_t * blacklist);
 BOOL snapshotLoad(LPTSTR loadFileName1, LPTSTR loadFileName2);
 BOOL snapshotProfile();
 BOOL snapshotProfileReboot();
