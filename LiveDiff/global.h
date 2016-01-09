@@ -179,7 +179,9 @@ struct _FILECONTENT
 	DWORD  nFileAttributes;                 // File attributes (e.g. directory)
 	DWORD  nChkSum;                         // File checksum (planned for the future, currently not used)
 	LPTSTR lpszSHA1;						// SHA1 hash of file
+	LPTSTR lpszMD5;							// MD5 hash of file
 	size_t cchSHA1;							// Length of file's SHA1 in chars
+	size_t cchMD5;							// Length of file's MD5 in chars
 	struct _FILECONTENT FAR *lpFirstSubFC;  // Pointer to file's first sub file
 	struct _FILECONTENT FAR *lpBrotherFC;   // Pointer to file's brother
 	struct _FILECONTENT FAR *lpFatherFC;    // Pointer to file's father

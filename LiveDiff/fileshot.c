@@ -36,6 +36,73 @@ LPTSTR lpszWindowsDirName;
 // Set up buffer sizes for file hashing
 #define BUFSIZE		1024
 #define SHA1LEN		20
+#define MD5LEN		16
+
+//-----------------------------------------------------------------
+// Calculate the MD5 hash value from a previously matched file name
+//----------------------------------------------------------------- 
+LPTSTR CalculateMD5(LPTSTR FileName)
+{
+	HANDLE hashFile = NULL;
+	BOOL bResult = FALSE;
+	HCRYPTPROV hProv = 0;
+	HCRYPTHASH hHash = 0;
+	DWORD cbRead = 0;
+	DWORD cbHash = MD5LEN;
+	BYTE rgbFile[BUFSIZE];
+	BYTE rgbHash[MD5LEN];
+	CHAR rgbDigits[] = "0123456789abcdef";
+	LPTSTR md5HashString;
+
+	// Open the file to perform hash
+	hashFile = CreateFile(FileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	if (INVALID_HANDLE_VALUE == hashFile) {
+		return TEXT("ERROR_OPENING_FILE\0");
+	}
+
+	// Get handle to the crypto provider
+	if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
+		CloseHandle(hashFile);
+		return TEXT("HASHING_FAILED\0");
+	}
+
+	if (!CryptCreateHash(hProv, CALG_SHA1, 0, 0, &hHash)) {
+		CloseHandle(hashFile);
+		return TEXT("HASHING_FAILED\0");
+	}
+
+	while (bResult = ReadFile(hashFile, rgbFile, BUFSIZE, &cbRead, NULL)) {
+		if (0 == cbRead) {
+			break;
+		}
+		if (!CryptHashData(hHash, rgbFile, cbRead, 0)) {
+			CryptReleaseContext(hProv, 0);
+			CryptDestroyHash(hHash);
+			CloseHandle(hashFile);
+			return TEXT("HASHING_FAILED\0");
+		}
+	}
+
+	if (!bResult) {
+		CryptReleaseContext(hProv, 0);
+		CryptDestroyHash(hHash);
+		CloseHandle(hashFile);
+		return TEXT("ERROR_READING_FILE\0");
+	}
+
+	// Finally got here with no errors, now calculate the SHA1 hash value
+	md5HashString = MYALLOC0((MD5LEN * 2 + 1) * sizeof(TCHAR));
+	_tcscpy_s(md5HashString, 1, TEXT(""));
+	if (CryptGetHashParam(hHash, HP_HASHVAL, rgbHash, &cbHash, 0)) {
+		for (DWORD i = 0; i < cbHash; i++) {
+			_sntprintf(md5HashString + (i * 2), 2, TEXT("%02X\0"), rgbHash[i]);
+		}
+	}
+	CryptDestroyHash(hHash);
+	CryptReleaseContext(hProv, 0);
+	CloseHandle(hashFile);
+	return md5HashString;
+}
 
 //-----------------------------------------------------------------
 // Calculate the SHA1 hash value from a previously matched file name
@@ -604,16 +671,19 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 		lpFC->nFileSizeHigh = FindData.nFileSizeHigh;
 		lpFC->nFileAttributes = FindData.dwFileAttributes;
 
-		// Calculate SHA1 of file (computationally intensive!)
+		// Calculate file hash (computationally intensive!)
 		// This should only be included in the following scenarios:
-		// 1) The user specified the "-c" command line argument without a blacklist
-		// 2) If the file is not found in the BST and blacklist filtering is specified
+		// 1) If the file is not found in the BST and blacklist filtering is specified
 		if (ISFILE(FindData.dwFileAttributes))
 		{
 			if (dwBlacklist == 2) {
 				lpFC->cchSHA1 = 40;
 				lpFC->lpszSHA1 = MYALLOC((lpFC->cchSHA1 + 1) * sizeof(TCHAR));
 				_tcscpy(lpFC->lpszSHA1, CalculateSHA1(GetWholeFileName(lpFC, 4)));
+
+				lpFC->cchMD5 = 32;
+				lpFC->lpszMD5 = MYALLOC((lpFC->cchMD5 + 1) * sizeof(TCHAR));
+				_tcscpy(lpFC->lpszMD5, CalculateMD5(GetWholeFileName(lpFC, 4)));
 			}
 		}
 

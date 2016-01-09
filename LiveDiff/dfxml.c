@@ -264,6 +264,7 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 	LPTSTR lpszMetaType = TEXT("");
 	LPTSTR lpszAlloc;
 	LPTSTR lpszsha1Hash;
+	LPTSTR lpszmd5Hash;
 
 	lpszFileObject = TEXT("fileobject");
 	// Write FileObject starting element with delta, determined by nActionType
@@ -335,6 +336,14 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 	}
 	xml_out2s(hFile, TEXT("alloc_name"), lpszAlloc);
 	xml_out2s(hFile, TEXT("alloc_inode"), lpszAlloc);
+
+	// If a file fetch MD5 hash
+	if ((FILEADD == nActionType) || (FILEDEL == nActionType) || (FILEMODI == nActionType)) {
+		lpszmd5Hash = lpCR->lpszMD5;
+		if (NULL != lpszmd5Hash) { // NULL check, mainly for saved file issue
+			xml_outa2s(hFile, TEXT("hashdigest"), TEXT("type='md5'"), lpszmd5Hash);
+		}
+	}
 
 	// If a file fetch SHA1 hash
 	if ((FILEADD == nActionType) || (FILEDEL == nActionType) || (FILEMODI == nActionType)) {
