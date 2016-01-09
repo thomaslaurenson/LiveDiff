@@ -96,11 +96,11 @@ int wmain(DWORD argc, TCHAR *argv[])
 			printf("      Usage: LiveDiff.exe [mode] [options]\n\n");
 			printf("       Mode: Operational mode for LiveDiff [default --scan]\n");
 			printf("             --profile         Profile mode, generate APXML profile\n");
-			printf("             --profile-reboot  Profile mode after system reboot\n\n");
-			printf("             --load            Load one, or two snapshot files\n");
+			printf("             --profile-reboot  Profile mode after system reboot\n");
+			printf("             --load            Load one, or two snapshot files\n\n");
 			printf("    Options: -s Save snapshot files [default FALSE]\n");
 			printf("             -b Use dynamic blacklists [default TRUE]\n");
-			printf("             -k Use static blacklists [default FALSE]\n");
+			printf("             -k Use static blacklists [default FALSE]\n\n");
 			printf("   Examples: LiveDiff.exe\n");
 			printf("             LiveDiff.exe --profile\n\n");
 			printf("             LiveDiff.exe -s\n");
@@ -352,13 +352,6 @@ BOOL snapshotProfile()
 	LPTSTR lpszAppVersion;
 	LPTSTR lpszAPXMLFileName;
 
-	// Blacklist processing
-	if (dwBlacklist = 1) {
-		generateBlacklist();				// Generate blacklists
-		dwBlacklist = 2;					// Turn on perform blacklisting
-		performSHA1Hashing = TRUE;			// Turn on SHA1 file hasing:
-	}
-
 	// Enter interactive application life cycle scanning mode
 	printf("\n>>> APPLICATION PROFILE MODE...\n");
 	printf("  > Perform numerous system scans to create APXML report...\n");
@@ -386,6 +379,13 @@ BOOL snapshotProfile()
 	// Open the APXML report and populate XML header
 	OpenAPXMLReport(lpszAPXMLFileName);
 	StartAPXML(lpszStartDate, lpszAppName, lpszAppVersion, lpszCommandline, lpszWindowsVersion);
+
+	// Blacklist processing
+	if (dwBlacklist = 1) {
+		generateBlacklist();				// Generate blacklists
+		dwBlacklist = 2;					// Turn on perform blacklisting
+		performSHA1Hashing = TRUE;			// Turn on SHA1 file hasing:
+	}
 
 	// LOOP SNAPSHOT PROCESS... until exited by user
 	size_t loopCount = 0;
