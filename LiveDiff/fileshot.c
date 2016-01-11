@@ -866,7 +866,7 @@ VOID SaveFiles(LPSNAPSHOT lpShot, LPFILECONTENT lpFC, DWORD nFPFatherFile, DWORD
 			sFC.nFileSHA1Len = (DWORD)lpFC->cchSHA1;
 			if (0 < sFC.nFileSHA1Len) {  // otherwise leave it all 0
 				sFC.nFileSHA1Len++;  // account for NULL char
-				// File hash will always be stored behind the , so its position is already known
+				// File hash will always be stored behind the filename, so its position is already known
 				sFC.ofsSHA1 = sFC.ofsFileName + sFC.nFileNameLen * sizeof(TCHAR);
 			}
 		}

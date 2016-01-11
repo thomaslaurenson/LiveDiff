@@ -27,26 +27,30 @@ along with LiveDiff.  If not, see <http://www.gnu.org/licenses/>.
 #include "global.h"
 
 #define MAX_SIGNATURE_LENGTH 12
-#define REGSHOT_READ_BLOCK_SIZE 8192
+#define LIVEDIFF_READ_BLOCK_SIZE 8192
 
-LPTSTR lpszFilter = TEXT("LiveDIff snapshot files (*.shot)\0*.shot\0All files\0*.*\0\0");
+// VARIABLES FOR SAVING SNAPSHOTS
+// Default file extension when saving/loading snapshots
+LPTSTR lpszLiveDiffFileDefExt = TEXT("shot");
 
+// Specify file sugnature (magic number) for saved snapshots
 // SBCS/MBCS signature (even in Unicode builds for backwards compatibility)
-char szRegshotFileSignatureSBCS[] = "REGSHOTHIVE";
-char szRegshotFileSignatureUTF16[] = "REGSHOTHIV2";  // use a number to define a file format not compatible with older releases (e.g. "3" could be UTF-32 or Big Endian)
-#define szRegshotFileSignature szRegshotFileSignatureUTF16
+char szLiveDiffFileSignatureSBCS[] = "LIVEDIFF_SNAPSHOT";
+// use a number to define a file format not compatible with older releases (e.g. "3" could be UTF-32 or Big Endian)
+char szLiveDoffFileSignatureUTF16[] = "LIVEDIFF_SNAPSHOT2";
+#define szLiveDiffFileSignature szLiveDoffFileSignatureUTF16
 
-LPTSTR lpszRegshotFileDefExt = TEXT("shot");
-LPTSTR lpszEmpty = TEXT("");	// Empty string
-
-SNAPSHOT Shot1;
-SNAPSHOT Shot2;
-
+// Save snapshot variables
 FILEHEADER fileheader;
 FILEEXTRADATA fileextradata;
 SAVEKEYCONTENT sKC;
 SAVEVALUECONTENT sVC;
 
+// Variable for snapshot 1 and 2
+SNAPSHOT Shot1;
+SNAPSHOT Shot2;
+
+// Buffers and size variables
 LPBYTE lpFileBuffer;
 LPTSTR lpStringBuffer;
 LPBYTE lpDataBuffer;
@@ -54,10 +58,20 @@ size_t nStringBufferSize;
 size_t nDataBufferSize;
 size_t nSourceSize;
 
-COMPRESULTS	CompareResult;		// Compare result structure
-DWORD		NBW;				// NumberOfBytesWritten
-HANDLE		hFileWholeReg;		// Handle of file
-FILETIME	ftLastWrite;		// Filetime structure
+// Compare result structure
+COMPRESULTS	CompareResult;
+
+// Empty string statement
+LPTSTR lpszEmpty = TEXT("");
+
+// NumberOfBytesWritten
+DWORD NBW;
+
+// Handle of file
+HANDLE hFileWholeReg;
+
+// Filetime structure for last write timestampt
+FILETIME ftLastWrite;
 
 // Initialise Registry hive naming conventions
 LPTSTR lpszHKLMShort = TEXT("HKLM");
@@ -68,6 +82,7 @@ LPTSTR lpszHKULong = TEXT("HKEY_USERS");
 // The current Registry hive being process (used for blacklisting)
 LPTSTR lpszCurrentHive;
 
+// Long int for error numbering
 LONG nErrNo;
 
 // ----------------------------------------------------------------------
@@ -1451,7 +1466,7 @@ VOID SaveShot(LPSNAPSHOT lpShot, LPTSTR lpszFileName)
 	ZeroMemory(&fileheader, sizeof(fileheader));
 
 	// Copy SBCS/MBCS signature to header (even in Unicode builds for backwards compatibility)
-	strncpy(fileheader.signature, szRegshotFileSignature, MAX_SIGNATURE_LENGTH);
+	strncpy(fileheader.signature, szLiveDiffFileSignature, MAX_SIGNATURE_LENGTH);
 
 	// Set file positions of hives inside the file
 	fileheader.ofsHKLM = 0;   // not known yet, may be empty
@@ -1460,18 +1475,24 @@ VOID SaveShot(LPSNAPSHOT lpShot, LPTSTR lpszFileName)
 
 	// Copy SBCS/MBCS strings to header (even in Unicode builds for backwards compatibility)
 	if (NULL != lpShot->lpszComputerName) {
-#ifdef _UNICODE
-		WideCharToMultiByte(CP_ACP, WC_COMPOSITECHECK | WC_DEFAULTCHAR, lpShot->lpszComputerName, -1, fileheader.computername, OLD_COMPUTERNAMELEN, NULL, NULL);
-#else
-		strncpy(fileheader.computername, lpShot->lpszComputerName, OLD_COMPUTERNAMELEN);
-#endif
+		WideCharToMultiByte(CP_ACP, 
+			WC_COMPOSITECHECK | WC_DEFAULTCHAR, 
+			lpShot->lpszComputerName, 
+			-1, 
+			fileheader.computername, 
+			OLD_COMPUTERNAMELEN, 
+			NULL, 
+			NULL);
 	}
 	if (NULL != lpShot->lpszUserName) {
-#ifdef _UNICODE
-		WideCharToMultiByte(CP_ACP, WC_COMPOSITECHECK | WC_DEFAULTCHAR, lpShot->lpszUserName, -1, fileheader.username, OLD_COMPUTERNAMELEN, NULL, NULL);
-#else
-		strncpy(fileheader.username, lpShot->lpszUserName, OLD_COMPUTERNAMELEN);
-#endif
+		WideCharToMultiByte(CP_ACP, 
+			WC_COMPOSITECHECK | WC_DEFAULTCHAR, 
+			lpShot->lpszUserName, 
+			-1, 
+			fileheader.username, 
+			OLD_COMPUTERNAMELEN,
+			NULL, 
+			NULL);
 	}
 
 	// Copy system time to header
@@ -1569,14 +1590,10 @@ VOID SaveShot(LPSNAPSHOT lpShot, LPTSTR lpszFileName)
 
 	// Close file
 	CloseHandle(hFileWholeReg);
-
-	// overwrite first letter of file name with NULL character to get path only, then create backup for initialization on next call
-	//*(opfn.lpstrFile + opfn.nFileOffset) = (TCHAR)'\0';  // TODO: check
-	//_tcscpy(lpszLastSaveDir, opfn.lpstrFile);
 }
 
 // ----------------------------------------------------------------------
-//
+// Adjust the size of a buffer
 // ----------------------------------------------------------------------
 size_t AdjustBuffer(LPVOID *lpBuffer, size_t nCurrentSize, size_t nWantedSize, size_t nAlign) 
 {
@@ -1833,14 +1850,14 @@ BOOL LoadShot(LPSNAPSHOT lpShot, LPTSTR lpszFileName)
 	ReadFile(hFileWholeReg, &fileheader, offsetof(FILEHEADER, ofsHKLM), &NBW, NULL);
 
 	// Check for valid file signatures (SBCS/MBCS and UTF-16 signature)
-	if ((0 != strncmp(szRegshotFileSignatureSBCS, fileheader.signature, MAX_SIGNATURE_LENGTH)) && (0 != strncmp(szRegshotFileSignatureUTF16, fileheader.signature, MAX_SIGNATURE_LENGTH))) {
+	if ((0 != strncmp(szLiveDiffFileSignatureSBCS, fileheader.signature, MAX_SIGNATURE_LENGTH)) && (0 != strncmp(szLiveDoffFileSignatureUTF16, fileheader.signature, MAX_SIGNATURE_LENGTH))) {
 		CloseHandle(hFileWholeReg);
 		printf("\n>>> ERROR: This is not a LiveDiff file.\n");
 		return FALSE;
 	}
 
 	// Check file signature for correct type (SBCS/MBCS or UTF-16)
-	if (0 != strncmp(szRegshotFileSignature, fileheader.signature, MAX_SIGNATURE_LENGTH)) {
+	if (0 != strncmp(szLiveDiffFileSignature, fileheader.signature, MAX_SIGNATURE_LENGTH)) {
 		CloseHandle(hFileWholeReg);
 		printf("\n>>> ERROR: This is not a LiveDiff file (or it is not unicode).\n");
 		return FALSE;
@@ -1855,10 +1872,10 @@ BOOL LoadShot(LPSNAPSHOT lpShot, LPTSTR lpszFileName)
 	// Read file blockwise for progress bar
 	SetFilePointer(hFileWholeReg, 0, NULL, FILE_BEGIN);
 	cbFileRemain = cbFileSize;  // 100% to go
-	cbReadSize = REGSHOT_READ_BLOCK_SIZE;  // next block length to read
+	cbReadSize = LIVEDIFF_READ_BLOCK_SIZE;  // next block length to read
 	for (cbFileRead = 0; 0 < cbFileRemain; cbFileRead += cbReadSize) {
 		// If the rest is smaller than a block, then use the rest length
-		if (REGSHOT_READ_BLOCK_SIZE > cbFileRemain) {
+		if (LIVEDIFF_READ_BLOCK_SIZE > cbFileRemain) {
 			cbReadSize = cbFileRemain;
 		}
 
