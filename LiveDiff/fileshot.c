@@ -677,13 +677,18 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 		if (ISFILE(FindData.dwFileAttributes))
 		{
 			if (dwBlacklist == 2) {
-				lpFC->cchSHA1 = 40;
-				lpFC->lpszSHA1 = MYALLOC((lpFC->cchSHA1 + 1) * sizeof(TCHAR));
-				_tcscpy(lpFC->lpszSHA1, CalculateSHA1(GetWholeFileName(lpFC, 4)));
-
-				lpFC->cchMD5 = 32;
-				lpFC->lpszMD5 = MYALLOC((lpFC->cchMD5 + 1) * sizeof(TCHAR));
-				_tcscpy(lpFC->lpszMD5, CalculateMD5(GetWholeFileName(lpFC, 4)));
+			    if (performSHA1Hashing)
+			    {
+				    lpFC->cchSHA1 = 40;
+				    lpFC->lpszSHA1 = MYALLOC((lpFC->cchSHA1 + 1) * sizeof(TCHAR));
+				    _tcscpy(lpFC->lpszSHA1, CalculateSHA1(GetWholeFileName(lpFC, 4)));
+                }
+                if (performMD5Hashing)
+                {
+				    lpFC->cchMD5 = 32;
+				    lpFC->lpszMD5 = MYALLOC((lpFC->cchMD5 + 1) * sizeof(TCHAR));
+				    _tcscpy(lpFC->lpszMD5, CalculateMD5(GetWholeFileName(lpFC, 4)));
+				}
 			}
 		}
 
