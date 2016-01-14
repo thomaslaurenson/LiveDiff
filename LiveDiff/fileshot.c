@@ -66,7 +66,7 @@ LPTSTR CalculateMD5(LPTSTR FileName)
 		return TEXT("HASHING_FAILED\0");
 	}
 
-	if (!CryptCreateHash(hProv, CALG_SHA1, 0, 0, &hHash)) {
+	if (!CryptCreateHash(hProv, CALG_MD5, 0, 0, &hHash)) {
 		CloseHandle(hashFile);
 		return TEXT("HASHING_FAILED\0");
 	}
@@ -98,6 +98,7 @@ LPTSTR CalculateMD5(LPTSTR FileName)
 			_sntprintf(md5HashString + (i * 2), 2, TEXT("%02X\0"), rgbHash[i]);
 		}
 	}
+
 	CryptDestroyHash(hHash);
 	CryptReleaseContext(hProv, 0);
 	CloseHandle(hashFile);

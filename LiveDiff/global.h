@@ -556,26 +556,16 @@ VOID DisplayShotInfo(LPSNAPSHOT lpShot);
 VOID DisplayResultInfo();
 LPTSTR GetWholeKeyName(LPKEYCONTENT lpStartKC, BOOL fUseLongNames);
 LPTSTR GetWholeValueName(LPVALUECONTENT lpVC, BOOL fUseLongNames);
-LPTSTR GetWholeValueDataType(LPVALUECONTENT lpVC);
-LPTSTR GetWholeValueData(LPVALUECONTENT lpVC);
-LPTSTR compResultToFileName(LPVOID lpContent);
-VOID OpenREGXMLReportHandle();
-VOID GenerateREGXMLBlacklist(LPKEYCONTENT lpStartKC1);
-VOID OpenDFXMLReportHandle();
-VOID GenerateDFXMLBlacklist(LPFILECONTENT lpStartFC1);
 BOOL OpenAPXMLReport(LPTSTR lpszAppName);
 BOOL reOpenAPXMLReport(LPTSTR lpszAppName);
-BOOL GenerateAPXMLReport();
+VOID SetTextsToDefaultLanguage(VOID);
 
 // dfxml.c global functions
-VOID StartDFXML();
 VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR);
-VOID EndDFXML();
-VOID StartREGXML();
 VOID PopulateCellObject(HANDLE hFile, DWORD nActionType, LPCOMPRESULT lpCR);
-VOID EndREGXML();
 LPTSTR CalculateSHA1(LPTSTR FileName);
-VOID StartAPXML();
+LPTSTR CalculateMD5(LPTSTR FileName);
+VOID StartAPXML(LPTSTR lpszStartDate, LPTSTR lpszAppName, LPTSTR lpszAppVersion, LPTSTR lpszCommandLine, LPTSTR lpszWindowsVersion);
 VOID StartAPXMLTag(LPTSTR tag);
 VOID EndAPXMLTag(LPTSTR tag);
 VOID EndAPXML();
@@ -586,9 +576,6 @@ LPTSTR xml_quote_check(LPTSTR value);
 LPTSTR xml_gt_check(LPTSTR value);
 LPTSTR xml_lt_check(LPTSTR value);
 LPTSTR replace_string(LPTSTR all, LPTSTR end, size_t posd, LPTSTR replace);
-
-// language.c global functions
-VOID SetTextsToDefaultLanguage(VOID);
 
 //-------------------------------------------------------------
 // Language strings

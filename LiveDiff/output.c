@@ -106,7 +106,7 @@ BOOL OpenAPXMLReport(LPTSTR lpszAppName)
 	hFileAPXML = CreateFile(lpszAPXMLDestFileName, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
 
 	// All done. Free stuff. Return True.
-	MYFREE(lpszAPXMLDestFileName);
+	//MYFREE(lpszAPXMLDestFileName);
 	return TRUE;
 }
 
