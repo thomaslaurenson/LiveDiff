@@ -80,6 +80,7 @@ DWORD dwBlacklist;
 BOOL includeBlacklist;
 BOOL performBlacklistFiltering;
 BOOL performSHA1Hashing;
+BOOL performMD5Hashing;
 BOOL saveSnapShots;
 
 LPTSTR lpsz_app_state;
@@ -177,7 +178,6 @@ struct _FILECONTENT
 	DWORD  nFileSizeLow;                    // File size [LOW  DWORD]
 	DWORD  nFileSizeHigh;                   // File size [HIGH DWORD]
 	DWORD  nFileAttributes;                 // File attributes (e.g. directory)
-	DWORD  nChkSum;                         // File checksum (planned for the future, currently not used)
 	LPTSTR lpszSHA1;						// SHA1 hash of file
 	LPTSTR lpszMD5;							// MD5 hash of file
 	size_t cchSHA1;							// Length of file's SHA1 in chars

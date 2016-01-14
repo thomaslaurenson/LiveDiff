@@ -69,6 +69,7 @@ int wmain(DWORD argc, TCHAR *argv[])
 	includeBlacklist = FALSE;
 	performBlacklistFiltering = FALSE;
 	performSHA1Hashing = FALSE;
+	performMD5Hashing = FALSE;
 	LPTSTR loadFileName1 = NULL;
 	LPTSTR loadFileName2 = NULL;
 	lpszCommandline = MYALLOC0(100 * sizeof(TCHAR));
@@ -100,11 +101,14 @@ int wmain(DWORD argc, TCHAR *argv[])
 			printf("             --load            Load one, or two snapshot files\n\n");
 			printf("    Options: -s Save snapshot files [default FALSE]\n");
 			printf("             -b Use dynamic blacklists [default TRUE]\n");
-			printf("             -k Use static blacklists [default FALSE]\n\n");
+			printf("             -k Use static blacklists [default FALSE]\n");
+			printf("             -c Select hash algorithm [default SHA1]\n\n");
 			printf("   Examples: LiveDiff.exe\n");
 			printf("             LiveDiff.exe --profile\n\n");
 			printf("             LiveDiff.exe -s\n");
-			printf("             LiveDiff.exe -b\n");
+			printf("             LiveDiff.exe -s -b\n");
+			printf("             LiveDiff.exe -c md5,sha1\n");
+			printf("             LiveDiff.exe -c md5 -s\n");
 			printf("             LiveDiff.exe --load 1.shot 2.shot\n");
 			return 0;
 		}
@@ -138,6 +142,18 @@ int wmain(DWORD argc, TCHAR *argv[])
 			if (_tcscmp(argv[i], _T("-b")) == 0) {
 				dwBlacklist = 1;
 			}
+			if (_tcscmp(argv[i], _T("-c")) == 0) {
+			    if (_tcscmp(argv[i+1], _T("md5")) == 0) {
+			        performMD5Hashing = TRUE;
+			    }
+                else if (_tcscmp(argv[i+1], _T("sha1")) == 0) {
+			        performSHA1Hashing = TRUE;
+			    }
+                else if (_tcscmp(argv[i+1], _T("md5,sha1")) == 0) {
+			        performMD5Hashing = TRUE;
+			        performSHA1Hashing = TRUE;
+			    }			    
+			}			
 			// Append command line arguments to string
 			_tcscat(lpszCommandline, argv[i]);
 			if (i < argc - 1) {

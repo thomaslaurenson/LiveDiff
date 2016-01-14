@@ -677,13 +677,18 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 		if (ISFILE(FindData.dwFileAttributes))
 		{
 			if (dwBlacklist == 2) {
-				lpFC->cchSHA1 = 40;
-				lpFC->lpszSHA1 = MYALLOC((lpFC->cchSHA1 + 1) * sizeof(TCHAR));
-				_tcscpy(lpFC->lpszSHA1, CalculateSHA1(GetWholeFileName(lpFC, 4)));
-
-				lpFC->cchMD5 = 32;
-				lpFC->lpszMD5 = MYALLOC((lpFC->cchMD5 + 1) * sizeof(TCHAR));
-				_tcscpy(lpFC->lpszMD5, CalculateMD5(GetWholeFileName(lpFC, 4)));
+			    if (performSHA1Hashing)
+			    {
+				    lpFC->cchSHA1 = 40;
+				    lpFC->lpszSHA1 = MYALLOC((lpFC->cchSHA1 + 1) * sizeof(TCHAR));
+				    _tcscpy(lpFC->lpszSHA1, CalculateSHA1(GetWholeFileName(lpFC, 4)));
+                }
+                if (performMD5Hashing)
+                {
+				    lpFC->cchMD5 = 32;
+				    lpFC->lpszMD5 = MYALLOC((lpFC->cchMD5 + 1) * sizeof(TCHAR));
+				    _tcscpy(lpFC->lpszMD5, CalculateMD5(GetWholeFileName(lpFC, 4)));
+				}
 			}
 		}
 
@@ -833,7 +838,6 @@ VOID SaveFiles(LPSNAPSHOT lpShot, LPFILECONTENT lpFC, DWORD nFPFatherFile, DWORD
 		sFC.nFileSizeLow = lpFC->nFileSizeLow;
 		sFC.nFileSizeHigh = lpFC->nFileSizeHigh;
 		sFC.nFileAttributes = lpFC->nFileAttributes;
-		sFC.nChkSum = lpFC->nChkSum;
 
 		// Set file positions of the relatives inside the tree
 		sFC.ofsFileName = 0;      // not known yet, may be defined in this call
@@ -1066,7 +1070,6 @@ VOID LoadFiles(LPSNAPSHOT lpShot, DWORD ofsFile, LPFILECONTENT lpFatherFC, LPFIL
 		lpFC->nFileSizeLow = sFC.nFileSizeLow;
 		lpFC->nFileSizeHigh = sFC.nFileSizeHigh;
 		lpFC->nFileAttributes = sFC.nFileAttributes;
-		lpFC->nChkSum = sFC.nChkSum;
 		
 		// ATTENTION!!! sFC will be INVALID from this point on, due to recursive calls
 		// If the entry has childs, then do a recursive call for the first child

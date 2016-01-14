@@ -1458,7 +1458,7 @@ VOID SaveShot(LPSNAPSHOT lpShot, LPTSTR lpszFileName)
 	// Open file for writing
 	hFileWholeReg = CreateFile(lpszFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (INVALID_HANDLE_VALUE == hFileWholeReg) {
-//		ErrMsg(asLangTexts[iszTextErrorCreateFile].lpszText);
+		printf(">>> ERROR: Creating snapshot file failed.\n");
 		return;
 	}
 

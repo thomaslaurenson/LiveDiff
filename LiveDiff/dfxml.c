@@ -338,18 +338,24 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 	xml_out2s(hFile, TEXT("alloc_inode"), lpszAlloc);
 
 	// If a file fetch MD5 hash
-	if ((FILEADD == nActionType) || (FILEDEL == nActionType) || (FILEMODI == nActionType)) {
-		lpszmd5Hash = lpCR->lpszMD5;
-		if (NULL != lpszmd5Hash) { // NULL check, mainly for saved file issue
-			xml_outa2s(hFile, TEXT("hashdigest"), TEXT("type='md5'"), lpszmd5Hash);
+	if (performMD5Hashing)
+	{
+		if ((FILEADD == nActionType) || (FILEDEL == nActionType) || (FILEMODI == nActionType)) {
+			lpszmd5Hash = lpCR->lpszMD5;
+			if (NULL != lpszmd5Hash) { // NULL check, mainly for saved file issue
+				xml_outa2s(hFile, TEXT("hashdigest"), TEXT("type='md5'"), lpszmd5Hash);
+			}
 		}
 	}
 
 	// If a file fetch SHA1 hash
-	if ((FILEADD == nActionType) || (FILEDEL == nActionType) || (FILEMODI == nActionType)) {
-		lpszsha1Hash = lpCR->lpszSHA1;
-		if (NULL != lpszsha1Hash) { // NULL check, mainly for saved file issue
-			xml_outa2s(hFile, TEXT("hashdigest"), TEXT("type='sha1'"), lpszsha1Hash);
+	if (performSHA1Hashing)
+	{
+		if ((FILEADD == nActionType) || (FILEDEL == nActionType) || (FILEMODI == nActionType)) {
+			lpszsha1Hash = lpCR->lpszSHA1;
+			if (NULL != lpszsha1Hash) { // NULL check, mainly for saved file issue
+				xml_outa2s(hFile, TEXT("hashdigest"), TEXT("type='sha1'"), lpszsha1Hash);
+			}
 		}
 	}
 
