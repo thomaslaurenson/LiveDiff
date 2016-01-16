@@ -552,12 +552,13 @@ BOOL TrieSearch1(trieNode_t *root, const wchar_t *key);
 
 // output.c global functions
 BOOL OutputComparisonResult(VOID);
-VOID DisplayShotInfo(LPSNAPSHOT lpShot);
-VOID DisplayResultInfo();
 LPTSTR GetWholeKeyName(LPKEYCONTENT lpStartKC, BOOL fUseLongNames);
 LPTSTR GetWholeValueName(LPVALUECONTENT lpVC, BOOL fUseLongNames);
 BOOL OpenAPXMLReport(LPTSTR lpszAppName);
 BOOL reOpenAPXMLReport(LPTSTR lpszAppName);
+BOOL GenerateAPXMLReport(VOID);
+VOID DisplayShotInfo(LPSNAPSHOT lpShot);
+VOID DisplayResultInfo();
 VOID SetTextsToDefaultLanguage(VOID);
 
 // dfxml.c global functions

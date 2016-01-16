@@ -34,6 +34,7 @@ LPTSTR lpszExtDir;
 LPTSTR lpszWindowsDirName;
 
 // Set up buffer sizes for file hashing
+#define BLOCKSIZE	4096
 #define BUFSIZE		1024
 #define SHA1LEN		20
 #define MD5LEN		16
@@ -116,7 +117,7 @@ LPTSTR CalculateSHA1(LPTSTR FileName)
 	HCRYPTHASH hHash = 0;
 	DWORD cbRead = 0;
 	DWORD cbHash = SHA1LEN;
-	BYTE rgbFile[BUFSIZE];
+	BYTE rgbFile[BLOCKSIZE];
 	BYTE rgbHash[SHA1LEN];
 	CHAR rgbDigits[] = "0123456789abcdef";
 	LPTSTR sha1HashString;
@@ -138,7 +139,7 @@ LPTSTR CalculateSHA1(LPTSTR FileName)
 		return TEXT("HASHING_FAILED\0");
 	}
 
-	while (bResult = ReadFile(hashFile, rgbFile, BUFSIZE, &cbRead, NULL)) {
+	while (bResult = ReadFile(hashFile, rgbFile, BLOCKSIZE, &cbRead, NULL)) {
 		if (0 == cbRead) {
 			break;
 		}
@@ -169,6 +170,88 @@ LPTSTR CalculateSHA1(LPTSTR FileName)
 	CryptReleaseContext(hProv, 0);
 	CloseHandle(hashFile);
 	return sha1HashString;
+}
+
+//-----------------------------------------------------------------
+// Block hashing: Calculate the SHA1 hash value for a 4096 block
+//----------------------------------------------------------------- 
+LPTSTR sha1Block(BYTE rgbFile[BLOCKSIZE], DWORD dwFileOffset, DWORD dwRunLength)
+{
+	HCRYPTPROV hProv = 0;
+	HCRYPTHASH hHash = 0;
+	BYTE rgbHash[SHA1LEN];
+	LPTSTR sha1HashString;
+	DWORD cbHash = SHA1LEN;
+
+	// Get handle to the crypto provider
+	if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
+		//CloseHandle(hashFile);
+		return TEXT("HASHING_FAILED CryptAcquireContext\0");
+	}
+
+	if (!CryptCreateHash(hProv, CALG_SHA1, 0, 0, &hHash)) {
+		//CloseHandle(hashFile);
+		return TEXT("HASHING_FAILED CryptCreateHash\0");
+	}
+
+	DWORD cbRead = dwRunLength;
+
+	if (!CryptHashData(hHash, rgbFile, cbRead, 0)) {
+		CryptReleaseContext(hProv, 0);
+		CryptDestroyHash(hHash);
+		return TEXT("HASHING_FAILED CryptHashData\0");
+	}
+
+	sha1HashString = MYALLOC0((SHA1LEN * 2 + 1) * sizeof(TCHAR));
+	_tcscpy_s(sha1HashString, 1, TEXT(""));
+	if (CryptGetHashParam(hHash, HP_HASHVAL, rgbHash, &cbHash, 0)) {
+		for (DWORD i = 0; i < cbHash; i++) {
+			_sntprintf(sha1HashString + (i * 2), 2, TEXT("%02X\0"), rgbHash[i]);
+		}
+	}
+	DWORD dwEndOffset = dwFileOffset + dwRunLength - 1;
+	//wprintf(L"%s offset %d-%d (%d)\n", sha1HashString, dwFileOffset, dwEndOffset, dwRunLength);
+	return sha1HashString;
+}
+
+//-----------------------------------------------------------------
+// Block hashing: From a file, calculate the SHA1 hash value in 4096 blocks
+//----------------------------------------------------------------- 
+LPTSTR CalculateSHA1Blocks(LPTSTR FileName)
+{
+	HANDLE hashFile = NULL;
+	BOOL bResult = FALSE;
+	DWORD cbRead = 0;
+	BYTE rgbFile[BUFSIZE];
+	CHAR rgbDigits[] = "0123456789abcdef";
+	DWORD dwFileOffset = 0;
+
+	// Open the file to perform hash
+	hashFile = CreateFile(FileName,
+		GENERIC_READ,
+		FILE_SHARE_READ,
+		NULL,
+		OPEN_EXISTING,
+		FILE_FLAG_SEQUENTIAL_SCAN,
+		NULL);
+	if (INVALID_HANDLE_VALUE == hashFile) {
+		return TEXT("ERROR_OPENING_FILE\0");
+	}
+
+	// Read input file in 4096 byte blocks, and SHA1 hash each block
+	while (bResult = ReadFile(hashFile, rgbFile, BUFSIZE, &cbRead, NULL)) {
+		// If number of read bytes is 0, break loop due to EOF
+		if (0 == cbRead) {
+			break;
+		}
+		// SHA1 hash the read block, also pass the file offset and number of bytes read
+		sha1Block(rgbFile, dwFileOffset, cbRead);
+		// Increase the file offset based on number of bytes read
+		dwFileOffset += cbRead;
+	}
+
+	//return sha1HashString;
+	return TEXT("DONE");
 }
 
 //-------------------------------------------------------------
