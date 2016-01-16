@@ -117,7 +117,7 @@ LPTSTR CalculateSHA1(LPTSTR FileName)
 	HCRYPTHASH hHash = 0;
 	DWORD cbRead = 0;
 	DWORD cbHash = SHA1LEN;
-	BYTE rgbFile[BLOCKSIZE];
+	BYTE rgbFile[BUFSIZE];
 	BYTE rgbHash[SHA1LEN];
 	CHAR rgbDigits[] = "0123456789abcdef";
 	LPTSTR sha1HashString;
@@ -139,7 +139,7 @@ LPTSTR CalculateSHA1(LPTSTR FileName)
 		return TEXT("HASHING_FAILED\0");
 	}
 
-	while (bResult = ReadFile(hashFile, rgbFile, BLOCKSIZE, &cbRead, NULL)) {
+	while (bResult = ReadFile(hashFile, rgbFile, BUFSIZE, &cbRead, NULL)) {
 		if (0 == cbRead) {
 			break;
 		}
@@ -222,7 +222,7 @@ LPTSTR CalculateSHA1Blocks(LPTSTR FileName)
 	HANDLE hashFile = NULL;
 	BOOL bResult = FALSE;
 	DWORD cbRead = 0;
-	BYTE rgbFile[BUFSIZE];
+	BYTE rgbFile[BLOCKSIZE];
 	CHAR rgbDigits[] = "0123456789abcdef";
 	DWORD dwFileOffset = 0;
 
@@ -239,7 +239,7 @@ LPTSTR CalculateSHA1Blocks(LPTSTR FileName)
 	}
 
 	// Read input file in 4096 byte blocks, and SHA1 hash each block
-	while (bResult = ReadFile(hashFile, rgbFile, BUFSIZE, &cbRead, NULL)) {
+	while (bResult = ReadFile(hashFile, rgbFile, BLOCKSIZE, &cbRead, NULL)) {
 		// If number of read bytes is 0, break loop due to EOF
 		if (0 == cbRead) {
 			break;

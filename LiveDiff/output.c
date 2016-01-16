@@ -72,38 +72,41 @@ VOID ParseLPCompResultsRegistry(DWORD nActionType, LPCOMPRESULT lpStartCR)
 // ----------------------------------------------------------------------
 // Create DFXML and RegXML reports of system changes between 2 snapshots
 // ----------------------------------------------------------------------
-BOOL OpenAPXMLReport(LPTSTR lpszAppName)
+BOOL OpenAPXMLReport(LPTSTR lpszReportBaseName)
 {
 	LPTSTR lpszOutputPath;
-	LPTSTR lpszReportBaseName;
 	LPTSTR lpszAPXMLExtension = TEXT(".apxml");
-	LPTSTR lpszAPXMLDestFileName;
-	DWORD  nBufferSize = 2048;
+	LPTSTR lpszAPXMLFileName;
 	size_t cchString;
 
-	size_t lenReportBaseName = _tcslen(lpszAppName);
-	lpszReportBaseName = MYALLOC0(lenReportBaseName * sizeof(TCHAR));
-	_tcscpy(lpszReportBaseName, lpszAppName);
+	// Get the current working directory for the APXML report
+	lpszOutputPath = MYALLOC0(MAX_PATH * sizeof(TCHAR));
+	GetCurrentDirectory(MAX_PATH + 1, lpszOutputPath);
 
-	// Allocate space for file names
-	lpszOutputPath = MYALLOC0(EXTDIRLEN * sizeof(TCHAR));
-	lpszAPXMLDestFileName = MYALLOC0(EXTDIRLEN * sizeof(TCHAR));
-
-	// Get the current directory to save report files in
-	GetCurrentDirectory(_tcslen(lpszOutputPath), lpszOutputPath);
-
+	// Add a backslash to the current working directory
 	cchString = _tcslen(lpszOutputPath);
 	if ((0 < cchString) && ((TCHAR)'\\' != *(lpszOutputPath + cchString - 1))) {
 		*(lpszOutputPath + cchString) = (TCHAR)'\\';
 		*(lpszOutputPath + cchString + 1) = (TCHAR)'\0';
 		cchString++;
 	}
-	// Create DFXML report file handle
-	_tcscpy(lpszAPXMLDestFileName, lpszOutputPath);
-	_tcscpy(lpszAPXMLDestFileName, lpszReportBaseName);
-	cchString = _tcslen(lpszAPXMLDestFileName);
-	_tcscat(lpszAPXMLDestFileName, lpszAPXMLExtension);
-	hFileAPXML = CreateFile(lpszAPXMLDestFileName, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+
+	// Append APXML report base name to output path
+	_tcscat(lpszOutputPath, lpszReportBaseName);
+
+	// Append APXML file extension
+	_tcscat(lpszOutputPath, lpszAPXMLExtension);
+
+	// Inform user of the output file
+	printf("  > APXML output: %ws\n", lpszOutputPath);
+
+	hFileAPXML = CreateFile(lpszOutputPath,
+		GENERIC_READ | GENERIC_WRITE, 
+		FILE_SHARE_READ | FILE_SHARE_WRITE, 
+		NULL,
+		CREATE_NEW, 
+		FILE_ATTRIBUTE_NORMAL, 
+		NULL);
 
 	// All done. Free stuff. Return True.
 	//MYFREE(lpszAPXMLDestFileName);
