@@ -68,7 +68,7 @@ int wmain(DWORD argc, TCHAR *argv[])
 	saveSnapShots = FALSE;
 	includeBlacklist = FALSE;
 	performBlacklistFiltering = FALSE;
-	performSHA1Hashing = FALSE;
+	performSHA1Hashing = TRUE;
 	performMD5Hashing = FALSE;
 	LPTSTR loadFileName1 = NULL;
 	LPTSTR loadFileName2 = NULL;
@@ -95,14 +95,15 @@ int wmain(DWORD argc, TCHAR *argv[])
 			printf("             snapshots are compared and system changes reported using the\n");
 			printf("             DFXML forensic data abstraction.\n\n");
 			printf("      Usage: LiveDiff.exe [mode] [options]\n\n");
-			printf("       Mode: Operational mode for LiveDiff [default --scan]\n");
+			printf("       Mode: Operational mode for LiveDiff [default --profile]\n");
 			printf("             --profile         Profile mode, generate APXML profile\n");
 			printf("             --profile-reboot  Profile mode after system reboot\n");
 			printf("             --load            Load one, or two snapshot files\n\n");
 			printf("    Options: -s Save snapshot files [default FALSE]\n");
-			printf("             -b Use dynamic blacklists [default TRUE]\n");
+			printf("             -b Use dynamic blacklists [default FALSE]\n");
 			printf("             -k Use static blacklists [default FALSE]\n");
-			printf("             -c Select hash algorithm [default SHA1]\n\n");
+			printf("             -c Select hash algorithm [default SHA1]\n");
+			printf("                e.g., -c md5; -c md5,sha1\n");
 			printf("   Examples: LiveDiff.exe\n");
 			printf("             LiveDiff.exe --profile\n\n");
 			printf("             LiveDiff.exe -s\n");
@@ -146,9 +147,6 @@ int wmain(DWORD argc, TCHAR *argv[])
 			    if (_tcscmp(argv[i+1], _T("md5")) == 0) {
 			        performMD5Hashing = TRUE;
 			    }
-                else if (_tcscmp(argv[i+1], _T("sha1")) == 0) {
-			        performSHA1Hashing = TRUE;
-			    }
                 else if (_tcscmp(argv[i+1], _T("md5,sha1")) == 0) {
 			        performMD5Hashing = TRUE;
 			        performSHA1Hashing = TRUE;
@@ -162,34 +160,12 @@ int wmain(DWORD argc, TCHAR *argv[])
 		}
 	}
 
-	if (dwBlacklist == 1)
-	{
-		// Call blacklist preparation functions
-		generateBlacklist();
-		// Turn on SHA1 file hasing:
-		// Only perform SHA1 file hashing is blacklist is included in the scanning process
-		// Reason: The performance overhead to hash every file is too computationally intensive
-		performSHA1Hashing = TRUE;
-		dwBlacklist = 2;
-	}
-
 	// From here, call the appropriate function for mode of operation selected by user
-	if (modeOfOperation == TEXT("LOAD"))
-	{
-		// Call load function
-		snapshotLoad(loadFileName1, loadFileName2);
-		// Print program clock timer
-		endProgramClockTimer = clock() - startProgramClockTimer;
-		msec = endProgramClockTimer * 1000 / CLOCKS_PER_SEC;
-		printf("\n>>> Program run time: %d seconds %d milliseconds\n", msec / 1000, msec % 1000);
-
-		// Done. So exit!
-		printf("\n>>> Finished.\n");
-	}
-	else if (modeOfOperation == TEXT("PROFILE"))
+	if (modeOfOperation == TEXT("PROFILE"))
 	{
 		// Call profile function
 		snapshotProfile();
+		
 		// Print program clock timer
 		endProgramClockTimer = clock() - startProgramClockTimer;
 		msec = endProgramClockTimer * 1000 / CLOCKS_PER_SEC;
@@ -199,35 +175,28 @@ int wmain(DWORD argc, TCHAR *argv[])
 	{
 		// Call profile function
 		snapshotProfileReboot();
+		
 		// Print program clock timer
 		endProgramClockTimer = clock() - startProgramClockTimer;
 		msec = endProgramClockTimer * 1000 / CLOCKS_PER_SEC;
 		printf("\n>>> Program run time: %d seconds %d milliseconds\n", msec / 1000, msec % 1000);
 	}
+	else if (modeOfOperation == TEXT("LOAD"))
+	{
+		// Call load function
+		snapshotLoad(loadFileName1, loadFileName2);
+		
+		// Print program clock timer
+		endProgramClockTimer = clock() - startProgramClockTimer;
+		msec = endProgramClockTimer * 1000 / CLOCKS_PER_SEC;
+		printf("\n>>> Program run time: %d seconds %d milliseconds\n", msec / 1000, msec % 1000);
+
+		// Finished.
+		printf("\n>>> Finished.\n");
+	}	
+	
+	// Done. So exit!
 	return 0;
-}
-
-//-----------------------------------------------------------------
-// LiveDiff: Dynamic blacklist generation
-//-----------------------------------------------------------------
-BOOL generateBlacklist()
-{
-	printf("\n>>> CREATING DYNAMIC BLACKLISTS...\n");
-
-	TrieCreate(&blacklistFILES);
-	TrieCreate(&blacklistHKLM);
-	TrieCreate(&blacklistHKU);
-
-	// SHOT ONE
-	lpShot = &Shot1;
-	printf("  > Scanning Windows Registry...\n");
-	RegShot(lpShot);
-	printf("  > Scanning Windows File System...\n");
-	FileShot(lpShot);
-
-	// We are done here! Free the shot. Return TRUE.
-	FreeShot(&Shot1);
-	return TRUE;
 }
 
 //-----------------------------------------------------------------
@@ -396,13 +365,6 @@ BOOL snapshotProfile()
 	OpenAPXMLReport(lpszAPXMLFileName);
 	StartAPXML(lpszStartDate, lpszAppName, lpszAppVersion, lpszCommandline, lpszWindowsVersion);
 
-	// Blacklist processing
-	if (dwBlacklist = 1) {
-		generateBlacklist();				// Generate blacklists
-		dwBlacklist = 2;					// Turn on perform blacklisting
-		performSHA1Hashing = TRUE;			// Turn on SHA1 file hasing:
-	}
-
 	// LOOP SNAPSHOT PROCESS... until exited by user
 	size_t loopCount = 0;
 	do
@@ -465,6 +427,11 @@ BOOL snapshotProfile()
 			RegShot(lpShot);
 			printf("  > Scanning Windows File System...\n");
 			FileShot(lpShot);
+			
+			// The first scan creates the dynamic blacklist
+			// Set blacklisting status to '2'
+			dwBlacklist = 2;
+			
 			// Determine time and print it
 			endClockTimer = clock() - startClockTimer;
 			msec = endClockTimer * 1000 / CLOCKS_PER_SEC;
