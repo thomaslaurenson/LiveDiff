@@ -1,5 +1,5 @@
 /*
-Copyright 2015 Thomas Laurenson
+Copyright 2016 Thomas Laurenson
 thomaslaurenson.com
 
 This file is part of LiveDiff.
@@ -49,6 +49,9 @@ int wmain(DWORD argc, TCHAR *argv[])
 	_sntprintf(lpszStartDate, 21, TEXT("%i-%02i-%02iT%02i:%02i:%02iZ"),
 		stStartTime.wYear, stStartTime.wMonth, stStartTime.wDay, stStartTime.wHour, stStartTime.wMinute, stStartTime.wSecond);
 
+	// Determine the Windows version number
+	determineWindowsVersion();
+
 	// Print a pretty banner...
 	printf("\n.____    .__               ________  .__  _____  _____ \n");
 	printf("|    |   |__|__  __ ____   \\_____  \\ |__|/ ____\\/ ____\\\n");
@@ -65,22 +68,17 @@ int wmain(DWORD argc, TCHAR *argv[])
 	ZeroMemory(&CompareResult, sizeof(CompareResult));
 
 	// Initialise main argument variables
-	saveSnapShots = FALSE;
-	includeBlacklist = FALSE;
-	performBlacklistFiltering = FALSE;
-	performSHA1Hashing = TRUE;
-	performMD5Hashing = FALSE;
-	LPTSTR loadFileName1 = NULL;
-	LPTSTR loadFileName2 = NULL;
+	saveSnapShots = FALSE;				// Are we saving snapshots after data collection
+	performSHA1Hashing = TRUE;			// Are we performing SHA1 hashing
+	performMD5Hashing = FALSE;			// Are we performing MD5 hashing
+	LPTSTR loadFileName1 = NULL;		// Filename to load snapshot1
+	LPTSTR loadFileName2 = NULL;		// Filename to load snapshot2
 	lpszCommandline = MYALLOC0(100 * sizeof(TCHAR));
 
-	// Determine the Windows version number
-	determineWindowsVersion();
-
 	// modeOfOperation dictates what to do:
-	// LOAD = load one or two snapshots, then compare (triggered with "--load" argument)
 	// PROFILE = looped snapshot comparison procedure (default)
 	// PROFILEREBOOT = continue profile mode after reboot
+	// LOAD = load one or two snapshots, then compare (triggered with "--load" argument)
 	LPTSTR modeOfOperation = TEXT("PROFILE");
 
 	//-----------------------------------------------------------------
@@ -158,6 +156,14 @@ int wmain(DWORD argc, TCHAR *argv[])
 				_tcscat(lpszCommandline, TEXT(" "));
 			}
 		}
+	}
+
+	// Initialize blacklists (if requested)
+	if (dwBlacklist == 1)
+	{
+		TrieCreate(&blacklistFILES);
+		TrieCreate(&blacklistHKLM);
+		TrieCreate(&blacklistHKU);
 	}
 
 	// From here, call the appropriate function for mode of operation selected by user
@@ -266,7 +272,6 @@ BOOL performShotTwo()
 
 	return TRUE;
 }
-
 
 //-----------------------------------------------------------------
 // LiveDiff Loading mode of operation (load 1 or 2 snapshots)
@@ -406,7 +411,9 @@ BOOL snapshotProfile()
 			if ((_tcscmp(lpszLifeCycleState, _T("reboot")) == 0))
 			{
 				printf("  > Saving snapshot 1...\n");
-				LPTSTR lpszFileName = TEXT("LD1.shot");
+				LPTSTR lpszFileName = MYALLOC0(MAX_PATH * sizeof(TCHAR));
+				_tcscat(lpszFileName, lpszLifeCycleState);
+				_tcscat(lpszFileName, TEXT("-1.shot"));
 				SaveShot(&Shot1, lpszFileName);
 				wprintf(L"  > Snapshot sucessfully saved as: %s\n", lpszFileName);
 
@@ -440,8 +447,9 @@ BOOL snapshotProfile()
 			if ((_tcscmp(lpszLifeCycleState, _T("reboot")) == 0))
 			{
 				printf("  > Saving snapshot 1...\n");
-				LPTSTR lpszFileName = TEXT("LD1.shot");
-				SaveShot(lpShot, lpszFileName);
+				LPTSTR lpszFileName = MYALLOC0(MAX_PATH * sizeof(TCHAR));
+				_tcscat(lpszFileName, lpszLifeCycleState);
+				_tcscat(lpszFileName, TEXT("-2.shot"));
 				wprintf(L"  > Snapshot sucessfully saved as: %s\n", lpszFileName);
 
 				// Done with this phase, user needs to reboot and load
@@ -512,13 +520,6 @@ BOOL snapshotProfileReboot()
 	// Alas, how to perform blacklisting when blacklist is stored in volatile memory??
 	// SOLUTION: Populate blacklist to text file, then reboot
 	
-	includeBlacklist = TRUE;
-	if (includeBlacklist) {
-		//loadBlacklist();			// Load the previously created blacklist
-		performSHA1Hashing = TRUE;	// Turn on SHA1 file hasing
-		performBlacklistFiltering = TRUE;	// Turn on perform blacklisting
-	}
-
 	// Enter interactive application life cycle scanning mode
 	printf("\n>>> APPLICATION PROFILE MODE (REBOOT)...\n");
 	printf("  > Load pre-reboot Shot1, capture Shot2, then finish APXML report...\n");

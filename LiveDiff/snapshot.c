@@ -1,5 +1,5 @@
 /*
-Copyright 2015 Thomas Laurenson
+Copyright 2016 Thomas Laurenson
 thomaslaurenson.com
 
 This file is part of LiveDiff.

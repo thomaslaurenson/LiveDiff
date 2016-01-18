@@ -1,4 +1,9 @@
 /*
+Copyright 2016 Thomas Laurenson
+thomaslaurenson.com
+
+This file was taken and modified from the Regshot project
+See: http://sourceforge.net/projects/regshot/
 Copyright 2011-2013 Regshot Team
 Copyright 1999-2003,2007,2011 TiANWEi
 Copyright 2004 tulipfan
@@ -77,8 +82,6 @@ BOOL fUseLongRegHead;
 // Global variable for dynamic blacklisting and file hashing
 // ----------------------------------------------------------------------
 DWORD dwBlacklist;
-BOOL includeBlacklist;
-BOOL performBlacklistFiltering;
 BOOL performSHA1Hashing;
 BOOL performMD5Hashing;
 BOOL saveSnapShots;
@@ -316,6 +319,27 @@ typedef struct _FILEHEADER FILEHEADER, FAR *LPFILEHEADER;
 #define FILEHEADER_VERSION_2 2
 #define FILEHEADER_VERSION_CURRENT FILEHEADER_VERSION_2
 #define FILEHEADER_ENDIANNESS_VALUE 0x12345678
+
+// ----------------------------------------------------------------------
+// Structure for saving or loading LiveDiff snapshots
+// ----------------------------------------------------------------------
+struct _LIVEDIFFHEADER
+{
+	char signature[16];		// offset 0; length 15;
+	DWORD nFHSize;			// Size of header (signature and header size) (offset 16; length 4)
+	DWORD ofsHKLM;			// HKLM offset (offset 20; length 4)
+	DWORD ofsHKU;			// HKU offset (offset 24; length 4)
+	DWORD ofsHF;			// File system offset (aka. HEADFILE) (offset 28; length 4)
+	SYSTEMTIME systemtime;  // Snapshot time (offset 32; length 16)
+	DWORD nKCSize;			// Size of key content (offset 52; length 4)
+	DWORD nVCSize;			// Size of value content (offset 56; length 4)
+	DWORD nHFSize;			// Size of file content (offset 60; length 4)
+	DWORD nFCSize;			// Size of file content (offset 64; length 4)
+	LPTSTR lpszApplicationName;
+	LPTSTR lpszApplicationVersion;
+	LPTSTR lpszApplicationState;
+};
+typedef struct _LIVEDIFFHEADER LIVEDIFFHEADER, FAR *LPLIVEDIFFHEADER;
 
 // ----------------------------------------------------------------------
 // Structure for extra data when saving or loading snapshots
