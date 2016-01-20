@@ -711,22 +711,31 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 			if (dwBlacklist == 1)
 			{
 				// First snapshot, therefore populate the Trie (Prefix Tree)
+				// Get the full file path
 				LPTSTR lpszFullPath;
 				lpszFullPath = GetWholeFileName(lpFC, 4);
+
+				// Add full path to file blacklist prefix tree, then free path
 				TrieAdd(&blacklistFILES, lpszFullPath);
 				MYFREE(lpszFullPath);
+
+				// Increase value count for display purposes
+				lpShot->stCounts.cFiles++;
+
+				continue;  // ignore this entry and continue with next brother value
 			}
 			else if (dwBlacklist == 2)
 			{
 				// Not the first snapshot, so filter known paths
 				LPTSTR lpszFullPath;
 				lpszFullPath = GetWholeFileName(lpFC, 4);
-				found = TrieSearch1(blacklistFILES->children, lpszFullPath);
+				found = TrieSearchPath(blacklistFILES->children, lpszFullPath);
 				//printf("%s\n", found ? "true" : "false");
 				if (found) {
 					lpShot->stCounts.cFilesBlacklist++;
 					MYFREE(lpszFullPath);
 					FreeAllFileContents(lpFC);
+
 					continue;  // ignore this entry and continue with next brother value
 				}
 				else {

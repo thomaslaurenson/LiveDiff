@@ -69,11 +69,21 @@ int wmain(DWORD argc, TCHAR *argv[])
 
 	// Initialise main argument variables
 	saveSnapShots = FALSE;				// Are we saving snapshots after data collection
-	performSHA1Hashing = TRUE;			// Are we performing SHA1 hashing
+	performSHA1Hashing = TRUE;			// Are we performing SHA1 hashing (default is true)
 	performMD5Hashing = FALSE;			// Are we performing MD5 hashing
-	LPTSTR loadFileName1 = NULL;		// Filename to load snapshot1
-	LPTSTR loadFileName2 = NULL;		// Filename to load snapshot2
+	performDynamicBlacklisting = FALSE; // Are we performing dynamic blacklisting
+	
+	// File name for previosuly saved snapshots to load
+	LPTSTR loadFileName1 = MYALLOC0(MAX_PATH * sizeof(TCHAR));  // Snapshot1
+	LPTSTR loadFileName2 = MYALLOC0(MAX_PATH * sizeof(TCHAR));  // Snapshot2
+
 	lpszCommandline = MYALLOC0(100 * sizeof(TCHAR));
+
+	// Variables for static blacklists
+	BOOL staticFileBlacklist = FALSE;
+	BOOL staticRegistryBlacklist = FALSE;
+	LPTSTR lpszFileBlacklist = MYALLOC0(MAX_PATH * sizeof(TCHAR));
+	LPTSTR lpszRegistryBlacklist = MYALLOC0(MAX_PATH * sizeof(TCHAR));
 
 	// modeOfOperation dictates what to do:
 	// PROFILE = looped snapshot comparison procedure (default)
@@ -99,23 +109,29 @@ int wmain(DWORD argc, TCHAR *argv[])
 			printf("             --load            Load one, or two snapshot files\n\n");
 			printf("    Options: -s Save snapshot files [default FALSE]\n");
 			printf("             -b Use dynamic blacklists [default FALSE]\n");
-			printf("             -k Use static blacklists [default FALSE]\n");
-			printf("             -c Select hash algorithm [default SHA1]\n");
-			printf("                e.g., -c md5; -c md5,sha1\n");
-			printf("   Examples: LiveDiff.exe\n");
-			printf("             LiveDiff.exe --profile\n\n");
+			printf("             -f Specify a static file system blacklist\n");
+			printf("             -r Specify a static Registry blacklist\n");
+			printf("             -c Select hash algorithm [default SHA1]\n\n");
+			printf("   Examples: LiveDiff.exe --profile -b\n\n");
 			printf("             LiveDiff.exe -s\n");
-			printf("             LiveDiff.exe -s -b\n");
 			printf("             LiveDiff.exe -c md5,sha1\n");
-			printf("             LiveDiff.exe -c md5 -s\n");
-			printf("             LiveDiff.exe --load 1.shot 2.shot\n");
+			printf("             LiveDiff.exe -f file-blacklist.txt\n");
+			printf("             LiveDiff.exe --load 1.shot 2.shot\n\n");
 			return 0;
 		}
 		
 		// Scan the command line arguments and set booleans
 		for (DWORD i = 0; i < argc; i++)
 		{
-			// Determine if we are loading files
+			// MODE: Determine if we are creating an APXML profile
+			if (_tcscmp(argv[i], _T("--profile")) == 0) {
+				modeOfOperation = TEXT("PROFILE");
+			}
+			// MODE: Determine if we are creating an APXML profile (but reboot phase)
+			if (_tcscmp(argv[i], _T("--profile-reboot")) == 0) {
+				modeOfOperation = TEXT("PROFILEREBOOT");
+			}
+			// MODE: Determine if we are loading files
 			if (_tcscmp(argv[i], _T("--load")) == 0) {
 				modeOfOperation = TEXT("LOAD");
 				if (NULL != argv[i + 1]){
@@ -125,14 +141,6 @@ int wmain(DWORD argc, TCHAR *argv[])
 					loadFileName2 = argv[i + 2];
 				}
 			}
-			// Determine if we are creating an APXML profile
-			if (_tcscmp(argv[i], _T("--profile")) == 0){
-				modeOfOperation = TEXT("PROFILE");
-			}
-			// Determine if we are creating an APXML profile (but reboot phase)
-			if (_tcscmp(argv[i], _T("--profile-reboot")) == 0){
-				modeOfOperation = TEXT("PROFILEREBOOT");
-			}
 			// Determine if we are saving snapshots
 			if (_tcscmp(argv[i], _T("-s")) == 0) {
 				saveSnapShots = TRUE;
@@ -141,15 +149,61 @@ int wmain(DWORD argc, TCHAR *argv[])
 			if (_tcscmp(argv[i], _T("-b")) == 0) {
 				dwBlacklist = 1;
 			}
+			// Determine what hash algorithm to use
 			if (_tcscmp(argv[i], _T("-c")) == 0) {
+				// Check there is an entry after '-c'
+				if (argc <= i+1) {
+					printf(">>> ERROR: Please enter a valid hashing algorithm. Exiting.\n");
+					exit(1);
+				}
+				// Check which algorithm is specified
 			    if (_tcscmp(argv[i+1], _T("md5")) == 0) {
 			        performMD5Hashing = TRUE;
+					dwBlacklist = 1;
 			    }
+				else if (_tcscmp(argv[i + 1], _T("sha1")) == 0) {
+					performSHA1Hashing = TRUE;
+					dwBlacklist = 1;
+				}
                 else if (_tcscmp(argv[i+1], _T("md5,sha1")) == 0) {
 			        performMD5Hashing = TRUE;
 			        performSHA1Hashing = TRUE;
-			    }			    
-			}			
+					dwBlacklist = 1;
+			    }
+				else {
+					printf(">>> ERROR: Invalid hashing algorithm. Exiting.\n");
+					printf("  > Possible options: LiveDiff.exe -c md5\n");
+					printf("                      LiveDiff.exe -c sha1\n");
+					printf("                      LiveDiff.exe -c md5,sha1\n");
+					exit(1);
+				}
+			}
+			// Determine if we have a static file blacklist
+			if (_tcscmp(argv[i], _T("-f")) == 0) {
+				staticFileBlacklist = TRUE;
+				lpszFileBlacklist = argv[i + 1]; // COPY OVER PROPERLY
+				WIN32_FIND_DATA FindFileData;
+				HANDLE handle = FindFirstFile(lpszFileBlacklist, &FindFileData);
+				// Check the file exists
+				if (handle == INVALID_HANDLE_VALUE) {
+					printf(">>> ERROR: Invalid static file blacklist. Exiting.\n");
+					exit(1);
+				}
+				dwBlacklist = 1;
+			}
+			// Determine if we have a static Registry blacklist
+			if (_tcscmp(argv[i], _T("-r")) == 0) {
+				staticRegistryBlacklist = TRUE;
+				lpszRegistryBlacklist = argv[i + 1]; // COPY OVER PROPERLY
+				WIN32_FIND_DATA FindFileData;
+				HANDLE handle = FindFirstFile(lpszRegistryBlacklist, &FindFileData);
+				// Check the file exists
+				if (handle == INVALID_HANDLE_VALUE) {
+					printf(">>> ERROR: Invalid static Registry blacklist. Exiting.\n");
+					exit(1);
+				}
+				dwBlacklist = 1;
+			}
 			// Append command line arguments to string
 			_tcscat(lpszCommandline, argv[i]);
 			if (i < argc - 1) {
@@ -158,13 +212,37 @@ int wmain(DWORD argc, TCHAR *argv[])
 		}
 	}
 
-	// Initialize blacklists (if requested)
+	// Initialize blacklists (always do this, until a better check is written)
+	TrieCreate(&blacklistFILES);
+	TrieCreate(&blacklistREGISTRY);
+	printf("\n>>> Implementing LiveDiff blacklisting\n");
+
+	// Populate static blacklists (if requested)
+	if (staticFileBlacklist) {
+		printf("  > Loading static file blacklist: %ws\n", lpszFileBlacklist);
+		populateStaticBlacklist(lpszFileBlacklist, blacklistFILES);
+	}
+	if (staticRegistryBlacklist) {
+		printf("  > Loading static Registry blacklist: %ws\n", lpszRegistryBlacklist);
+		populateStaticBlacklist(lpszRegistryBlacklist, blacklistREGISTRY);
+	}
+
 	if (dwBlacklist == 1)
 	{
-		TrieCreate(&blacklistFILES);
-		TrieCreate(&blacklistHKLM);
-		TrieCreate(&blacklistHKU);
+		printf(">>> Generating dynamic blacklist...\n");
+		lpShot = &Shot1;
+		printf("  > Scanning Windows Registry...\n");
+		RegShot(lpShot);
+		printf("  > Scanning Windows File System...\n");
+		FileShot(lpShot);
+
+		// We are done here! Free the shot.
+		FreeShot(&Shot1);
+
+		// Set blacklisting status to '2'
+		dwBlacklist = 2;
 	}
+	
 
 	// From here, call the appropriate function for mode of operation selected by user
 	if (modeOfOperation == TEXT("PROFILE"))
@@ -434,10 +512,6 @@ BOOL snapshotProfile()
 			RegShot(lpShot);
 			printf("  > Scanning Windows File System...\n");
 			FileShot(lpShot);
-			
-			// The first scan creates the dynamic blacklist
-			// Set blacklisting status to '2'
-			dwBlacklist = 2;
 			
 			// Determine time and print it
 			endClockTimer = clock() - startClockTimer;

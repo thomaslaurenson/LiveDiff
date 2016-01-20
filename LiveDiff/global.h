@@ -82,6 +82,7 @@ BOOL fUseLongRegHead;
 // Global variable for dynamic blacklisting and file hashing
 // ----------------------------------------------------------------------
 DWORD dwBlacklist;
+BOOL performDynamicBlacklisting;
 BOOL performSHA1Hashing;
 BOOL performMD5Hashing;
 BOOL saveSnapShots;
@@ -493,29 +494,6 @@ extern LPSNAPSHOT lpMenuShot;	// Pointer to current Shot for popup menus and ali
 extern BOOL fUseLongRegHead;	// Flag for compatibility with Regshot 1.61e5 and undoreg 1.46
 
 //-------------------------------------------------------------
-// BINARY TREE IMPLEMENTATION FOR BLACKLISTING FILE SYSTEM PATHS
-//-------------------------------------------------------------
-// treeNode structure for file system paths
-// The tree splits file system paths at the backslash character
-// and creates a tree in the following structure:
-//              C:
-//             /   \
-//          Boot  Users
-//          /        \
-//      BCD.LOG    Administrator
-//-------------------------------------------------------------
-typedef struct treeNode_
-{
-	wchar_t *lpszFilePath;
-	struct treeNode_ *left;
-	struct treeNode_ *right;
-} treeNode;
-
-treeNode* rootHKLM;
-treeNode* rootHKU;
-treeNode* rootFILES;
-
-//-------------------------------------------------------------
 // PREFIX TREE (TRIE) IMPLEMENTATION
 //-------------------------------------------------------------
 typedef struct trieNode {
@@ -527,16 +505,15 @@ typedef struct trieNode {
 } trieNode_t;
 
 trieNode_t *blacklistFILES;
-trieNode_t *blacklistHKLM;
-trieNode_t *blacklistHKU;
+trieNode_t *blacklistREGISTRY;
+
+BOOL populateStaticBlacklist(LPTSTR lpszFileName, trieNode_t * blacklist);
 
 //-------------------------------------------------------------
 // Global LiveDiff function definitions
 //-------------------------------------------------------------
 // livediff.c global functions
 VOID determineWindowsVersion();
-BOOL generateBlacklist();
-BOOL populateTextBlacklist(LPTSTR lpszFileName, trieNode_t * blacklist);
 BOOL snapshotLoad(LPTSTR loadFileName1, LPTSTR loadFileName2);
 BOOL snapshotProfile();
 BOOL snapshotProfileReboot();
@@ -572,7 +549,7 @@ void TrieRemove(trieNode_t **root, wchar_t *key);
 void TrieDestroy(trieNode_t* root);
 trieNode_t *TrieCreateNode(wchar_t key);
 trieNode_t* TrieSearch(trieNode_t *root, const wchar_t *key);
-BOOL TrieSearch1(trieNode_t *root, const wchar_t *key);
+BOOL TrieSearchPath(trieNode_t *root, const wchar_t *key);
 
 // output.c global functions
 BOOL OutputComparisonResult(VOID);

@@ -1076,32 +1076,37 @@ LPKEYCONTENT GetRegistrySnap(LPSNAPSHOT lpShot, HKEY hRegKey, LPTSTR lpszRegKeyN
 				if (dwBlacklist == 1)
 				{
 					// First snapshot, therefore populate the Trie (Prefix Tree)
+					// Get the full file path
 					LPTSTR lpszFullPath;
 					lpszFullPath = GetWholeValueName(lpVC, FALSE);
-					if (_tcscmp(lpszCurrentHive, lpszHKLMShort) == 0) {
-						TrieAdd(&blacklistHKLM, lpszFullPath);
-					}
-					else if (_tcscmp(lpszCurrentHive, lpszHKUShort) == 0) {
-						TrieAdd(&blacklistHKU, lpszFullPath);
-					}
+					
+					// Add full path to Registry blacklist, then free path
+					TrieAdd(&blacklistREGISTRY, lpszFullPath);
 					MYFREE(lpszFullPath);
+					
+					// Increase value count for display purposes
+					lpShot->stCounts.cValues++;
+
+					continue; // ignore this entry and continue with next brother value
 				}
 				else if (dwBlacklist == 2)
 				{
 					// Not the first snapshot, so filter known Registry value paths
 					BOOL found = FALSE;
 					LPTSTR lpszFullPath;
+
+					// Get the full Registry path
 					lpszFullPath = GetWholeValueName(lpVC, FALSE);
-					if (_tcscmp(lpszCurrentHive, lpszHKLMShort) == 0) {
-						found = TrieSearch1(blacklistHKLM->children, lpszFullPath);
-					}
-					else if (_tcscmp(lpszCurrentHive, lpszHKUShort) == 0) {
-						found = TrieSearch1(blacklistHKU->children, lpszFullPath);
-					}
+
+					// Search the Registry blacklist prefix tree for path
+					found = TrieSearchPath(blacklistREGISTRY->children, lpszFullPath);
+
+					// If path is found, skip to next entry, otherwise free the path and keep going
 					if (found) {
 						lpShot->stCounts.cValuesBlacklist++;
 						MYFREE(lpszFullPath);
 						FreeAllValueContents(lpVC);
+
 						continue;  // ignore this entry and continue with next brother value
 					}
 					else {

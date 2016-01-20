@@ -39,7 +39,7 @@ char lpszLiveDiffSignature[] = "LIVEDIFF_HEADER";
 // ----------------------------------------------------------------------
 VOID SaveSnapShot(LPSNAPSHOT lpShot, LPTSTR lpszFileName)
 {
-	DWORD nFPCurrent;
+	//DWORD nFPCurrent;
 
 	// Check snapshot for content, return if there is nothing to save
 	if ((NULL == lpShot->lpHKLM) && (NULL == lpShot->lpHKU) && (NULL == lpShot->lpHF)) {

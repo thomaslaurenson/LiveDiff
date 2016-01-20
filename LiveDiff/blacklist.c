@@ -179,7 +179,7 @@ trieNode_t* TrieSearch(trieNode_t *root, const wchar_t *key)
 //-----------------------------------------------------------------
 // Search the Trie (Prefix Tree) for a specific entry
 //-----------------------------------------------------------------
-BOOL TrieSearch1(trieNode_t *root, const wchar_t *key)
+BOOL TrieSearchPath(trieNode_t *root, const wchar_t *key)
 {
 	trieNode_t *level = root;
 	trieNode_t *pPtr = NULL;
@@ -335,15 +335,13 @@ void TrieDestroy(trieNode_t* root)
 //-----------------------------------------------------------------
 // Load the static blacklists into Trie (Prefix Tree)
 //-----------------------------------------------------------------
-BOOL populateTextBlacklist(LPTSTR lpszFileName, trieNode_t * blacklist)
+BOOL populateStaticBlacklist(LPTSTR lpszFileName, trieNode_t * blacklist)
 {
 	wchar_t line[MAX_PATH];
-
 	FILE *hFile;
 	hFile = _wfopen(lpszFileName, L"rb, ccs=UTF-16LE");
 
-	int i = 0;
-
+	//int i = 0;
 	while (fgetws(line, MAX_PATH, hFile))
 	{
 		// Remove newline character
@@ -359,11 +357,12 @@ BOOL populateTextBlacklist(LPTSTR lpszFileName, trieNode_t * blacklist)
 		// If line does not start with a hash ('#'), add to blacklist
 		if (line[0] != (TCHAR)'#')
 		{
+			//printf("%ws\n", line);
 			TrieAdd(&blacklist, line);
 		}
 	}
 
-	// All done with loading file, so close file handle
+	// All done with loading blacklist, so close file handle and return
 	fclose(hFile);
 	return TRUE;
 }

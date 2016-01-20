@@ -76,7 +76,6 @@ BOOL OpenAPXMLReport(LPTSTR lpszReportBaseName)
 {
 	LPTSTR lpszOutputPath;
 	LPTSTR lpszAPXMLExtension = TEXT(".apxml");
-	LPTSTR lpszAPXMLFileName;
 	size_t cchString;
 
 	// Get the current working directory for the APXML report
