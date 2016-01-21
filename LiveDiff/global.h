@@ -297,65 +297,54 @@ DWORD dwPrecisionLevel;
 //-------------------------------------------------------------
 // livediff.c global functions
 VOID determineWindowsVersion();
-BOOL snapshotLoad(LPTSTR loadFileName1, LPTSTR loadFileName2);
 BOOL snapshotProfile();
 BOOL snapshotProfileReboot();
+BOOL snapshotLoad(LPTSTR loadFileName1, LPTSTR loadFileName2);
 
 // regshot.c global functions
 VOID RegShot(LPSNAPSHOT lpShot);
-BOOL DirChainMatch(LPHEADFILE lpHF1, LPHEADFILE lpHF2);
-VOID CreateNewResult(DWORD nActionType, LPVOID lpContentOld, LPVOID lpContentNew);
-VOID CompareShots(VOID);
-VOID CompareHeadFiles(LPHEADFILE lpStartHF1, LPHEADFILE lpStartHF2);
-VOID ClearRegKeyMatchFlags(LPKEYCONTENT lpKC);
-VOID ClearHeadFileMatchFlags(LPHEADFILE lpHF);
-VOID FreeAllHeadFiles(LPHEADFILE lpHF);
-VOID FreeShot(LPSNAPSHOT lpShot);
-size_t AdjustBuffer(LPVOID *lpBuffer, size_t nCurrentSize, size_t nWantedSize, size_t nAlign);
-VOID FreeCompareResult(void);
 LPTSTR TransformValueData(LPBYTE lpData, PDWORD lpcbData, DWORD nConversionType);
-LPTSTR ParseValueData(LPBYTE lpData, PDWORD lpcbData, DWORD nTypeCode);
+LPTSTR GetWholeKeyName(LPKEYCONTENT lpStartKC, BOOL fUseLongNames);
+LPTSTR GetWholeValueName(LPVALUECONTENT lpVC, BOOL fUseLongNames);
 LPTSTR GetValueDataType(DWORD nTypeCode);
+LPTSTR ParseValueData(LPBYTE lpData, PDWORD lpcbData, DWORD nTypeCode);
+VOID FreeShot(LPSNAPSHOT lpShot);
+VOID ClearRegKeyMatchFlags(LPKEYCONTENT lpKC);
+VOID CompareShots(VOID);
+VOID CreateNewResult(DWORD nActionType, LPVOID lpContentOld, LPVOID lpContentNew);
+VOID FreeCompareResult(void);
+size_t AdjustBuffer(LPVOID *lpBuffer, size_t nCurrentSize, size_t nWantedSize, size_t nAlign);
 
 // fileshot.c global functions
 VOID FileShot(LPSNAPSHOT lpShot);
 LPTSTR GetWholeFileName(LPFILECONTENT lpStartFC, size_t cchExtra);
+VOID CompareHeadFiles(LPHEADFILE lpStartHF1, LPHEADFILE lpStartHF2);
+VOID ClearHeadFileMatchFlags(LPHEADFILE lpHF);
+VOID FreeAllHeadFiles(LPHEADFILE lpHF);
+BOOL DirChainMatch(LPHEADFILE lpHF1, LPHEADFILE lpHF2);
 
 // blacklist.c global function
 void TrieCreate(trieNode_t **root);
 void TrieAdd(trieNode_t **root, wchar_t *key);
-void TrieRemove(trieNode_t **root, wchar_t *key);
-void TrieDestroy(trieNode_t* root);
 trieNode_t *TrieCreateNode(wchar_t key);
 trieNode_t* TrieSearch(trieNode_t *root, const wchar_t *key);
 BOOL TrieSearchPath(trieNode_t *root, const wchar_t *key);
 
 // output.c global functions
-BOOL OutputComparisonResult(VOID);
-LPTSTR GetWholeKeyName(LPKEYCONTENT lpStartKC, BOOL fUseLongNames);
-LPTSTR GetWholeValueName(LPVALUECONTENT lpVC, BOOL fUseLongNames);
-BOOL OpenAPXMLReport(LPTSTR lpszAppName);
-BOOL reOpenAPXMLReport(LPTSTR lpszAppName);
-BOOL GenerateAPXMLReport(VOID);
-VOID DisplayShotInfo(LPSNAPSHOT lpShot);
-VOID DisplayResultInfo();
 VOID SetTextsToDefaultLanguage(VOID);
+VOID DisplayResultInfo();
+VOID DisplayShotInfo(LPSNAPSHOT lpShot);
+BOOL OpenAPXMLReport(LPTSTR lpszAppName);
+BOOL GenerateAPXMLReport(VOID);
+BOOL reOpenAPXMLReport(LPTSTR lpszAppName);
 
 // dfxml.c global functions
-VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR);
-VOID PopulateCellObject(HANDLE hFile, DWORD nActionType, LPCOMPRESULT lpCR);
-LPTSTR CalculateSHA1(LPTSTR FileName);
-LPTSTR CalculateMD5(LPTSTR FileName);
 VOID StartAPXML(LPTSTR lpszStartDate, LPTSTR lpszAppName, LPTSTR lpszAppVersion, LPTSTR lpszCommandLine, LPTSTR lpszWindowsVersion);
 VOID StartAPXMLTag(LPTSTR tag);
 VOID EndAPXMLTag(LPTSTR tag);
 VOID EndAPXML();
-
-LPTSTR xml_ampersand_check(LPTSTR value);
-LPTSTR xml_apos_check(LPTSTR value);
-LPTSTR xml_quote_check(LPTSTR value);
-LPTSTR xml_gt_check(LPTSTR value);
-LPTSTR xml_lt_check(LPTSTR value);
+VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR);
+VOID PopulateCellObject(HANDLE hFile, DWORD nActionType, LPCOMPRESULT lpCR);
 LPTSTR replace_string(LPTSTR all, LPTSTR end, size_t posd, LPTSTR replace);
 
 //-------------------------------------------------------------

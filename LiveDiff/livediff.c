@@ -433,7 +433,7 @@ BOOL snapshotLoad(LPTSTR loadFileName1, LPTSTR loadFileName2)
 	// Now, produce DFXML and RegXML reports
 	printf("\n>>> Generating output...\n");
 	// Need to update to output to APXML here
-	//OutputComparisonResult();
+	//OutputComparisonResult(); // THERE IS NO LONGER A FUNCTION TO HANDLE THIS-REAUTHOR!
 
 	// Done. So exit!
 	printf("\n>>> Finished.\n");
