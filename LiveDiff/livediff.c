@@ -343,7 +343,7 @@ BOOL performShotOne()
 	if (saveSnapShots) {
 		printf("  > Saving snapshot 1...\n");
 		LPTSTR lpszFileName = TEXT("LD1.shot");
-		SaveShot(lpShot, lpszFileName);
+		//SaveShot(lpShot, lpszFileName);
 		wprintf(L"  > Snapshot sucessfully saved as: %s\n", lpszFileName);
 	}
 	// Display the information from the shot
@@ -377,7 +377,7 @@ BOOL performShotTwo()
 	if (saveSnapShots) {
 		printf("  > Saving snapshot 2...\n");
 		LPTSTR lpszFileName = TEXT("LD2.shot");
-		SaveShot(lpShot, lpszFileName);
+		//SaveShot(lpShot, lpszFileName);
 		wprintf(L"  > Snapshot sucessfully saved as: %s\n", lpszFileName);
 	}
 	// Display the information from the shot
@@ -400,7 +400,7 @@ BOOL snapshotLoad(LPTSTR loadFileName1, LPTSTR loadFileName2)
 		printf("\n\n>>> SHOT 1\n");
 		wprintf(L"  > Loading snapshot 1: %s\n", loadFileName1);
 		lpShot = &Shot1;
-		LoadShot(lpShot, loadFileName1); // Fix too many parameters, fix by copying to LPTSTR?!
+		//LoadShot(lpShot, loadFileName1); // Fix too many parameters, fix by copying to LPTSTR?!
 		DisplayShotInfo(lpShot);
 	}
 	else
@@ -416,7 +416,7 @@ BOOL snapshotLoad(LPTSTR loadFileName1, LPTSTR loadFileName2)
 		printf("\n\n>>> SHOT 2\n");
 		wprintf(L"  > Loading snapshot 2: %s\n", loadFileName2);
 		lpShot = &Shot2;
-		LoadShot(lpShot, loadFileName2);
+		//LoadShot(lpShot, loadFileName2);
 		DisplayShotInfo(lpShot);
 	}
 	else
@@ -527,7 +527,7 @@ BOOL snapshotProfile()
 				LPTSTR lpszFileName = MYALLOC0(MAX_PATH * sizeof(TCHAR));
 				_tcscat(lpszFileName, lpszLifeCycleState);
 				_tcscat(lpszFileName, TEXT("-1.shot"));
-				SaveShot(&Shot1, lpszFileName);
+				//SaveShot(&Shot1, lpszFileName);
 				wprintf(L"  > Snapshot sucessfully saved as: %s\n", lpszFileName);
 
 				// Done with this phase, user needs to reboot and load
@@ -646,7 +646,7 @@ BOOL snapshotProfileReboot()
 	printf("\n\n>>> SHOT 1\n");
 	wprintf(L"  > Loading snapshot 1: %s\n", loadFileName1);
 	lpShot = &Shot1;
-	LoadShot(lpShot, loadFileName1);
+	//LoadShot(lpShot, loadFileName1);
 	DisplayShotInfo(lpShot);
 
 	// SHOT TWO
