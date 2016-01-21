@@ -332,6 +332,52 @@ void TrieDestroy(trieNode_t* root)
 
 }
 
+/* ============================================= */
+
+int maxLevel;
+
+void padding(char *s, int n)
+{
+	int i;
+
+	for (i = 0; i < n; i++)
+		printf("%s", s);
+}
+
+void printNode(trieNode_t *p)
+{
+	if (p->key != '\0')
+		//printf("(`%c',%d)\n", p->key, p->key);
+		printf("%c", p->key);
+	else
+		printf("(`*',%d)\n", p->key);
+	
+}
+
+void printSubTrie(trieNode_t *p, int level)  // Print on level level
+{
+	// printf("printSubTrie (p->key = '%c')\n", p->key);
+	if (p == NULL)
+		return;
+
+	while (p != NULL)
+	{
+		//padding("         ", level);
+		printNode(p);
+
+		printSubTrie(p->children, level + 1);
+
+		p = p->next;
+	}
+}
+
+void TriePrint(trieNode_t *root)
+{
+	// printf("TriePrint\n");
+	printSubTrie(root, 0);  // Print on level 0
+	printf("\n========================================================\n");
+}
+
 //-----------------------------------------------------------------
 // Load the static blacklists into Trie (Prefix Tree)
 //-----------------------------------------------------------------
@@ -344,6 +390,7 @@ BOOL populateStaticBlacklist(LPTSTR lpszFileName, trieNode_t * blacklist)
 	//int i = 0;
 	while (fgetws(line, MAX_PATH, hFile))
 	{
+		printf("B4  : %ws", line);
 		// Remove newline character
 		if (line[_tcslen(line) - 1] == (TCHAR)'\n') {
 			line[_tcslen(line) - 1] = (TCHAR)'\0';
@@ -357,7 +404,7 @@ BOOL populateStaticBlacklist(LPTSTR lpszFileName, trieNode_t * blacklist)
 		// If line does not start with a hash ('#'), add to blacklist
 		if (line[0] != (TCHAR)'#')
 		{
-			//printf("%ws\n", line);
+			printf("LINE: %ws\n", line);
 			TrieAdd(&blacklist, line);
 		}
 	}

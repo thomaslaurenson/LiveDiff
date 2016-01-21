@@ -25,8 +25,7 @@ LPSNAPSHOT lpShot;			// Pointer to current Shot
 LPTSTR lpszCommandline;		// The LiveDiff command line
 LPTSTR lpszWindowsVersion;	// The Windows version number
 LPTSTR lpszStartDate;		// Program start date
-
-LPTSTR lpsz_app_state;
+LPTSTR lpszAppState;
 
 //-----------------------------------------------------------------
 // LiveDiff wmain function
@@ -85,6 +84,10 @@ int wmain(DWORD argc, TCHAR *argv[])
 	LPTSTR lpszFileBlacklist = MYALLOC0(MAX_PATH * sizeof(TCHAR));
 	LPTSTR lpszRegistryBlacklist = MYALLOC0(MAX_PATH * sizeof(TCHAR));
 
+	// 
+	// Default precision level
+	dwPrecisionLevel = 2;
+
 	// modeOfOperation dictates what to do:
 	// PROFILE = looped snapshot comparison procedure (default)
 	// PROFILEREBOOT = continue profile mode after reboot
@@ -111,10 +114,15 @@ int wmain(DWORD argc, TCHAR *argv[])
 			printf("             -b Use dynamic blacklists [default FALSE]\n");
 			printf("             -f Specify a static file system blacklist\n");
 			printf("             -r Specify a static Registry blacklist\n");
+			printf("             -p Specify a precision level [default 1]\n");
+			printf("                  1 = new/deleted entries\n"); 
+			printf("                  2 = new/deleted/modified entries\n");
+			printf("                  3 = new/deleted/modified/changed entries;\n");
 			printf("             -c Select hash algorithm [default SHA1]\n\n");
 			printf("   Examples: LiveDiff.exe --profile -b\n\n");
 			printf("             LiveDiff.exe -s\n");
 			printf("             LiveDiff.exe -c md5,sha1\n");
+			printf("             LiveDiff.exe -c md5 -p 0\n");
 			printf("             LiveDiff.exe -f file-blacklist.txt\n");
 			printf("             LiveDiff.exe --load 1.shot 2.shot\n\n");
 			return 0;
@@ -204,6 +212,30 @@ int wmain(DWORD argc, TCHAR *argv[])
 				}
 				dwBlacklist = 1;
 			}
+			if (_tcscmp(argv[i], _T("-p")) == 0) 
+			{
+				if (argc <= i + 1) {
+					printf(">>> ERROR: Please enter a precision level. Exiting.\n");
+					exit(1);
+				}
+				if (_tcscmp(argv[i + 1], _T("0")) == 0) {
+					dwPrecisionLevel = 1;
+				}
+				else if (_tcscmp(argv[i + 1], _T("1")) == 0) {
+					dwPrecisionLevel = 2;
+				}
+				else if (_tcscmp(argv[i + 1], _T("2")) == 0) {
+					dwPrecisionLevel = 3;
+				}
+				else {
+					printf(">>> ERROR: Invalid pecision level. Exiting.\n");
+					printf("  > Possible options: LiveDiff.exe -p 1\n");
+					printf("                      LiveDiff.exe -p 2\n");
+					printf("                      LiveDiff.exe -p 3\n");
+					exit(1);
+				}
+				
+			}
 			// Append command line arguments to string
 			_tcscat(lpszCommandline, argv[i]);
 			if (i < argc - 1) {
@@ -226,6 +258,9 @@ int wmain(DWORD argc, TCHAR *argv[])
 		printf("  > Loading static Registry blacklist: %ws\n", lpszRegistryBlacklist);
 		populateStaticBlacklist(lpszRegistryBlacklist, blacklistREGISTRY);
 	}
+
+	//TriePrint(blacklistFILES);
+	//exit(1);
 
 	if (dwBlacklist == 1)
 	{
@@ -546,8 +581,8 @@ BOOL snapshotProfile()
 		printf("\n>>> Generating output...\n");
 		//StartAPXMLTag(lpszLifeCycleState);
 		size_t cchlpszLifeCycleState = _tcslen(lpszLifeCycleState);
-		lpsz_app_state = MYALLOC0((cchlpszLifeCycleState + 1) * sizeof(TCHAR));
-		_tcscpy(lpsz_app_state, lpszLifeCycleState);
+		lpszAppState = MYALLOC0((cchlpszLifeCycleState + 1) * sizeof(TCHAR));
+		_tcscpy(lpszAppState, lpszLifeCycleState);
 		GenerateAPXMLReport();
 		//EndAPXMLTag(lpszLifeCycleState);
 

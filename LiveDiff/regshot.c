@@ -683,10 +683,13 @@ VOID CompareRegKeys(LPKEYCONTENT lpStartKC1, LPKEYCONTENT lpStartKC2)
 						}
 						else {
 							// Value data differ, so value is modified
-							lpVC2->fValueMatch = ISMODI;
-							CompareResult.stcChanged.cValues++;
-							CompareResult.stcModified.cValues++;
-							CreateNewResult(VALMODI, lpVC1, lpVC2);
+							if (dwPrecisionLevel > 1)
+							{
+								lpVC2->fValueMatch = ISMODI;
+								CompareResult.stcChanged.cValues++;
+								CompareResult.stcModified.cValues++;
+								CreateNewResult(VALMODI, lpVC1, lpVC2);
+							}
 						}
 						break;
 					}
@@ -1087,7 +1090,7 @@ LPKEYCONTENT GetRegistrySnap(LPSNAPSHOT lpShot, HKEY hRegKey, LPTSTR lpszRegKeyN
 					// Increase value count for display purposes
 					lpShot->stCounts.cValues++;
 
-					continue; // ignore this entry and continue with next brother value
+					//continue; // ignore this entry and continue with next brother value
 				}
 				else if (dwBlacklist == 2)
 				{

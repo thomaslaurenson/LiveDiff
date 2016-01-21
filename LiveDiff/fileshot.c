@@ -405,10 +405,13 @@ VOID CompareFiles(LPFILECONTENT lpStartFC1, LPFILECONTENT lpStartFC2)
 				else 
 				{
 					// File data differ, so file is modified
-					lpFC2->fFileMatch = ISMODI;
-					CompareResult.stcChanged.cFiles++;
-					CompareResult.stcModified.cFiles++;
-					CreateNewResult(FILEMODI, lpFC1, lpFC2);
+					if (dwPrecisionLevel > 1)
+					{
+						lpFC2->fFileMatch = ISMODI;
+						CompareResult.stcChanged.cFiles++;
+						CompareResult.stcModified.cFiles++;
+						CreateNewResult(FILEMODI, lpFC1, lpFC2);
+					}
 				}
 			}
 			else
@@ -421,10 +424,13 @@ VOID CompareFiles(LPFILECONTENT lpStartFC1, LPFILECONTENT lpStartFC2)
 				else 
 				{
 					// Dir data differ, so dir is modified
-					lpFC2->fFileMatch = ISMODI;
-					CompareResult.stcChanged.cDirs++;
-					CompareResult.stcModified.cDirs++;
-					CreateNewResult(DIRMODI, lpFC1, lpFC2);
+					if (dwPrecisionLevel > 1)
+					{
+						lpFC2->fFileMatch = ISMODI;
+						CompareResult.stcChanged.cDirs++;
+						CompareResult.stcModified.cDirs++;
+						CreateNewResult(DIRMODI, lpFC1, lpFC2);
+					}
 				}
 				// Compare sub files if any
 				if ((NULL != lpFC1->lpFirstSubFC) || (NULL != lpFC2->lpFirstSubFC)) {
@@ -722,7 +728,7 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 				// Increase value count for display purposes
 				lpShot->stCounts.cFiles++;
 
-				continue;  // ignore this entry and continue with next brother value
+				//continue;  // ignore this entry and continue with next brother value
 			}
 			else if (dwBlacklist == 2)
 			{

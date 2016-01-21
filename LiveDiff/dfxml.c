@@ -360,7 +360,7 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 	}
 
 	// Write application life cycle phase (app_state) element
-	xml_out2s(hFile, TEXT("app_state"), lpsz_app_state);
+	xml_out2s(hFile, TEXT("app_state"), lpszAppState);
 
 	// Write FileObject end element 
 	xml_ctagout(hFile, TEXT("fileobject"));
@@ -516,7 +516,7 @@ VOID PopulateCellObject(HANDLE hFile, DWORD nActionType, LPCOMPRESULT lpCR)
 	xml_out2s(hFile, TEXT("alloc"), lpszAlloc);
 
 	// Write application life cycle phase (app_state) element
-	xml_out2s(hFile, TEXT("app_state"), lpsz_app_state);
+	xml_out2s(hFile, TEXT("app_state"), lpszAppState);
 
 	// Close the cellobject tag
 	xml_ctagout(hFile, TEXT("cellobject"));

@@ -86,8 +86,8 @@ BOOL performDynamicBlacklisting;
 BOOL performSHA1Hashing;
 BOOL performMD5Hashing;
 BOOL saveSnapShots;
-
-LPTSTR lpsz_app_state;
+LPTSTR lpszAppState;
+DWORD dwPrecisionLevel;
 
 // ----------------------------------------------------------------------
 // Definitions for matching status, including modification type
