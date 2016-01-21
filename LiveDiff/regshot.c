@@ -26,46 +26,17 @@ along with LiveDiff.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "global.h"
 
-#define MAX_SIGNATURE_LENGTH 12
-#define LIVEDIFF_READ_BLOCK_SIZE 8192
-
-// VARIABLES FOR SAVING SNAPSHOTS
-// Default file extension when saving/loading snapshots
-LPTSTR lpszLiveDiffFileDefExt = TEXT("shot");
-
-// Specify file sugnature (magic number) for saved snapshots
-// SBCS/MBCS signature (even in Unicode builds for backwards compatibility)
-char szLiveDiffFileSignatureSBCS[] = "LIVEDIFF_SNAPSHOT";
-// use a number to define a file format not compatible with older releases (e.g. "3" could be UTF-32 or Big Endian)
-char szLiveDoffFileSignatureUTF16[] = "LIVEDIFF_SNAPSHOT2";
-#define szLiveDiffFileSignature szLiveDoffFileSignatureUTF16
-
-// Variable for snapshot 1 and 2
+// Variable for Snapshot1, Snapshot2, and CompareResults structures
 SNAPSHOT Shot1;
 SNAPSHOT Shot2;
+COMPRESULTS	CompareResult;
 
 // Buffers and size variables
-LPBYTE lpFileBuffer;
 LPTSTR lpStringBuffer;
 LPBYTE lpDataBuffer;
 size_t nStringBufferSize;
 size_t nDataBufferSize;
 size_t nSourceSize;
-
-// Compare result structure
-COMPRESULTS	CompareResult;
-
-// Empty string statement
-LPTSTR lpszEmpty = TEXT("");
-
-// NumberOfBytesWritten
-DWORD NBW;
-
-// Handle of file
-HANDLE hFileWholeReg;
-
-// Filetime structure for last write timestampt
-FILETIME ftLastWrite;
 
 // Initialise Registry hive naming conventions
 LPTSTR lpszHKLMShort = TEXT("HKLM");
@@ -781,7 +752,8 @@ VOID CompareRegKeys(LPKEYCONTENT lpStartKC1, LPKEYCONTENT lpStartKC2)
 VOID CompareShots(VOID) 
 {
 	if (!DirChainMatch(Shot1.lpHF, Shot2.lpHF)) {
-		//MessageBox(hWnd, TEXT("Found two shots with different DIR chain! (or with different order)\r\nYou can continue, but file comparison result would be abnormal!"), asLangTexts[iszTextWarning].lpszText, MB_ICONWARNING);  //TODO: I18N, create text index and translate
+		printf("Different dir chain found. Exiting.\n");
+		exit(1);
 	}
 
 	// Initialize result and markers
@@ -919,12 +891,6 @@ VOID FreeAllKeyContents(LPKEYCONTENT lpKC)
 // ----------------------------------------------------------------------
 VOID FreeShot(LPSNAPSHOT lpShot) 
 {
-	if (NULL != lpShot->lpszComputerName) {
-		MYFREE(lpShot->lpszComputerName);
-	}
-	if (NULL != lpShot->lpszUserName) {
-		MYFREE(lpShot->lpszUserName);
-	}
 	if (NULL != lpShot->lpHKLM) {
 		FreeAllKeyContents(lpShot->lpHKLM);
 	}
@@ -1015,11 +981,11 @@ LPKEYCONTENT GetRegistrySnap(LPSNAPSHOT lpShot, HKEY hRegKey, LPTSTR lpszRegKeyN
 
 			// Get buffer for maximum value name length
 			nSourceSize = cchMaxValueName * sizeof(TCHAR);
-			nStringBufferSize = AdjustBuffer(&lpStringBuffer, nStringBufferSize, nSourceSize, REGSHOT_BUFFER_BLOCK_BYTES);
+			nStringBufferSize = AdjustBuffer(&lpStringBuffer, nStringBufferSize, nSourceSize, BUFFER_BLOCK_BYTES);
 
 			// Get buffer for maximum value data length
 			nSourceSize = cbMaxValueData;
-			nDataBufferSize = AdjustBuffer(&lpDataBuffer, nDataBufferSize, nSourceSize, REGSHOT_BUFFER_BLOCK_BYTES);
+			nDataBufferSize = AdjustBuffer(&lpDataBuffer, nDataBufferSize, nSourceSize, BUFFER_BLOCK_BYTES);
 
 			// Get registry key values
 			lplpVCPrev = &lpKC->lpFirstVC;
@@ -1158,7 +1124,7 @@ LPKEYCONTENT GetRegistrySnap(LPSNAPSHOT lpShot, HKEY hRegKey, LPTSTR lpszRegKeyN
 
 		// Get buffer for maximum sub key name length
 		nSourceSize = cchMaxSubKeyName * sizeof(TCHAR);
-		nStringBufferSize = AdjustBuffer(&lpStringBuffer, nStringBufferSize, nSourceSize, REGSHOT_BUFFER_BLOCK_BYTES);
+		nStringBufferSize = AdjustBuffer(&lpStringBuffer, nStringBufferSize, nSourceSize, BUFFER_BLOCK_BYTES);
 
 		// Get registry sub keys
 		lplpKCPrev = &lpKC->lpFirstSubKC;

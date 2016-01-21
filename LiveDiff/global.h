@@ -73,21 +73,10 @@ LPTSTR lpszHKULong;
 BOOL fUseLongRegHead;
 
 // ----------------------------------------------------------------------
-// File system global definitions to distinguish files and directories
+// Definitions to distinguish file system directories and files
 // ----------------------------------------------------------------------
 #define ISDIR(x)  ( (x&FILE_ATTRIBUTE_DIRECTORY) != 0 )
 #define ISFILE(x) ( (x&FILE_ATTRIBUTE_DIRECTORY) == 0 )
-
-// ----------------------------------------------------------------------
-// Global variable for dynamic blacklisting and file hashing
-// ----------------------------------------------------------------------
-DWORD dwBlacklist;
-BOOL performDynamicBlacklisting;
-BOOL performSHA1Hashing;
-BOOL performMD5Hashing;
-BOOL saveSnapShots;
-LPTSTR lpszAppState;
-DWORD dwPrecisionLevel;
 
 // ----------------------------------------------------------------------
 // Definitions for matching status, including modification type
@@ -117,9 +106,8 @@ DWORD dwPrecisionLevel;
 // Definition for output files
 // ----------------------------------------------------------------------
 #define EXTDIRLEN					MAX_PATH * 4	// Define searching directory length in TCHARs (MAX_PATH includes NULL)
-#define OLD_COMPUTERNAMELEN			64				// Define COMPUTER name length, do not change
-#define SIZEOF_INFOBOX				4096			// Define snapshot summary size
-#define REGSHOT_BUFFER_BLOCK_BYTES	1024
+#define SIZEOF_INFOBOX				4096			// Define snapshot summary display size
+#define BUFFER_BLOCK_BYTES			1024			// Buffer for various byte objects
 
 // ----------------------------------------------------------------------
 // IMPLEMENTED STRUCTURES:
@@ -161,6 +149,7 @@ struct _KEYCONTENT
 {
 	LPTSTR lpszKeyName;                     // Pointer to key's name
 	size_t cchKeyName;                      // Length of key's name in chars
+	// Add in modified time (last write time)
 	LPVALUECONTENT lpFirstVC;               // Pointer to key's first value
 	struct _KEYCONTENT FAR *lpFirstSubKC;   // Pointer to key's first sub key
 	struct _KEYCONTENT FAR *lpBrotherKC;    // Pointer to key's brother
@@ -182,8 +171,8 @@ struct _FILECONTENT
 	DWORD  nFileSizeHigh;                   // File size [HIGH DWORD]
 	DWORD  nFileAttributes;                 // File attributes (e.g. directory)
 	LPTSTR lpszSHA1;						// SHA1 hash of file
-	LPTSTR lpszMD5;							// MD5 hash of file
 	size_t cchSHA1;							// Length of file's SHA1 in chars
+	LPTSTR lpszMD5;							// MD5 hash of file
 	size_t cchMD5;							// Length of file's MD5 in chars
 	struct _FILECONTENT FAR *lpFirstSubFC;  // Pointer to file's first sub file
 	struct _FILECONTENT FAR *lpBrotherFC;   // Pointer to file's brother
@@ -208,15 +197,15 @@ typedef struct  _HEADFILE HEADFILE, FAR *LPHEADFILE;
 // ----------------------------------------------------------------------
 struct _SNAPSHOT
 {
-	LPKEYCONTENT  lpHKLM;                   // Pointer to snapshots HKLM registry keys
-	LPKEYCONTENT  lpHKU;                    // Pointer to snapshots HKU registry keys
-	LPHEADFILE    lpHF;                     // Pointer to snapshots head files
-	LPTSTR        lpszComputerName;         // Pointer to snapshots computer name
-	LPTSTR        lpszUserName;             // Pointer to snapshots user name
-	SYSTEMTIME    systemtime;
-	COUNTS        stCounts;
-	BOOL          fFilled;                  // Flag if Shot was done/loaded (even if result is empty)
-	BOOL          fLoaded;                  // Flag if Shot was loaded from a file
+	LPKEYCONTENT	lpHKLM;                 // Pointer to snapshots HKLM registry keys
+	LPKEYCONTENT	lpHKU;                  // Pointer to snapshots HKU registry keys
+	LPHEADFILE		lpHF;                   // Pointer to snapshots head files
+	LPTSTR			lpszAppName;			// Application name
+	LPTSTR			lpszAppState;			// Application state (e.g., install, open, uninstall)
+	LPTSTR			lpszWindowsVersion;		// Windows version number
+	COUNTS			stCounts;				// Counts structure representing number of entries
+	BOOL			fFilled;                // Flag if snapshot was done/loaded (even if result is empty)
+	BOOL			fLoaded;                // Flag if snapshot was loaded from a file
 };
 typedef struct _SNAPSHOT SNAPSHOT, FAR *LPSNAPSHOT;
 
@@ -268,32 +257,6 @@ struct _COMPRESULTS
 };
 typedef struct _COMPRESULTS COMPRESULTS, FAR *LPCOMPRESULTS;
 
-// ----------------------------------------------------------------------
-// External variables
-// ----------------------------------------------------------------------
-extern COMPRESULTS CompareResult;	// Compare result
-extern DWORD NBW;					// NumberOfBytesWritten (used for output to text files)
-extern SNAPSHOT Shot1;				// Snapshot One
-extern SNAPSHOT Shot2;				// Snapshot Two
-extern LPBYTE lpFileBuffer;
-extern LPTSTR lpStringBuffer;
-extern size_t nStringBufferSize;
-extern size_t nSourceSize;
-extern LPTSTR lpszMessage;			//Used in debug? Needed?!
-extern LPTSTR lpszExtDir;			// External variable for output file 
-extern LPTSTR lpszOutputPath;		// External variable for output file path
-extern LPTSTR lpszWindowsDirName;	// External variable for Windows directory name
-extern LPTSTR lpszEmpty;
-
-//-------------------------------------------------------------
-// Global LiveDiff variables
-//-------------------------------------------------------------
-extern HWND hWnd;				// The handle of LiveDiff
-extern HANDLE hFile;            // Handle of file regshot use
-extern HANDLE hFileWholeReg;	// Handle of file regshot use
-extern LPSNAPSHOT lpMenuShot;	// Pointer to current Shot for popup menus and alike
-extern BOOL fUseLongRegHead;	// Flag for compatibility with Regshot 1.61e5 and undoreg 1.46
-
 //-------------------------------------------------------------
 // PREFIX TREE (TRIE) IMPLEMENTATION
 //-------------------------------------------------------------
@@ -310,6 +273,25 @@ trieNode_t *blacklistREGISTRY;
 
 BOOL populateStaticBlacklist(LPTSTR lpszFileName, trieNode_t * blacklist);
 
+
+
+// ----------------------------------------------------------------------
+// External variables
+// ----------------------------------------------------------------------
+extern SNAPSHOT Shot1;				// Snapshot One
+extern SNAPSHOT Shot2;				// Snapshot Two
+extern COMPRESULTS CompareResult;	// Compare result
+extern HANDLE hFile;				// Handle of file LiveDiff use
+extern BOOL fUseLongRegHead;		// Long Registry name
+
+DWORD dwBlacklist;
+BOOL performDynamicBlacklisting;
+BOOL performSHA1Hashing;
+BOOL performMD5Hashing;
+BOOL saveSnapShots;
+LPTSTR lpszAppState;
+DWORD dwPrecisionLevel;
+
 //-------------------------------------------------------------
 // Global LiveDiff function definitions
 //-------------------------------------------------------------
@@ -325,8 +307,6 @@ BOOL DirChainMatch(LPHEADFILE lpHF1, LPHEADFILE lpHF2);
 VOID CreateNewResult(DWORD nActionType, LPVOID lpContentOld, LPVOID lpContentNew);
 VOID CompareShots(VOID);
 VOID CompareHeadFiles(LPHEADFILE lpStartHF1, LPHEADFILE lpStartHF2);
-VOID SaveShot(LPSNAPSHOT lpShot, LPTSTR lpszFileName);
-BOOL LoadShot(LPSNAPSHOT lpShot, LPTSTR lpszFileName);
 VOID ClearRegKeyMatchFlags(LPKEYCONTENT lpKC);
 VOID ClearHeadFileMatchFlags(LPHEADFILE lpHF);
 VOID FreeAllHeadFiles(LPHEADFILE lpHF);
@@ -340,8 +320,6 @@ LPTSTR GetValueDataType(DWORD nTypeCode);
 // fileshot.c global functions
 VOID FileShot(LPSNAPSHOT lpShot);
 LPTSTR GetWholeFileName(LPFILECONTENT lpStartFC, size_t cchExtra);
-VOID SaveHeadFiles(LPSNAPSHOT lpShot, LPHEADFILE lpHF, DWORD nFPCaller);
-VOID LoadHeadFiles(LPSNAPSHOT lpShot, DWORD ofsHeadFile, LPHEADFILE *lplpCaller);
 
 // blacklist.c global function
 void TrieCreate(trieNode_t **root);

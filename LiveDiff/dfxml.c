@@ -22,6 +22,7 @@ along with LiveDiff.  If not, see <http://www.gnu.org/licenses/>.
 
 HANDLE hFileAPXML;		// Application Profile file handle
 DWORD cbCRLF;
+DWORD NBW;
 
 //-----------------------------------------------------------------
 // DFXML Functions to make life easier
