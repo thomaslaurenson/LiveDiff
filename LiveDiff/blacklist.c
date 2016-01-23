@@ -390,7 +390,7 @@ BOOL populateStaticBlacklist(LPTSTR lpszFileName, trieNode_t * blacklist)
 	//int i = 0;
 	while (fgetws(line, MAX_PATH, hFile))
 	{
-		printf("B4  : %ws", line);
+		//printf("B4  : %ws", line);
 		// Remove newline character
 		if (line[_tcslen(line) - 1] == (TCHAR)'\n') {
 			line[_tcslen(line) - 1] = (TCHAR)'\0';
@@ -404,7 +404,7 @@ BOOL populateStaticBlacklist(LPTSTR lpszFileName, trieNode_t * blacklist)
 		// If line does not start with a hash ('#'), add to blacklist
 		if (line[0] != (TCHAR)'#')
 		{
-			printf("LINE: %ws\n", line);
+			//printf("LINE: %ws\n", line);
 			TrieAdd(&blacklist, line);
 		}
 	}

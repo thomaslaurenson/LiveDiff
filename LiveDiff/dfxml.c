@@ -20,9 +20,8 @@ along with LiveDiff.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "global.h"
 
-HANDLE hFileAPXML;		// Application Profile file handle
-DWORD cbCRLF;
-DWORD NBW;
+HANDLE hFileAPXML; // Application Profile file handle
+DWORD NBW; // Number of Bytes Written
 
 //-----------------------------------------------------------------
 // DFXML Functions to make life easier
@@ -63,7 +62,7 @@ VOID xml_outa2s(HANDLE hFile, LPTSTR tag, LPTSTR attribute, LPTSTR value)
 }
 
 //-----------------------------------------------------------------
-// Write out a starting tag (e.g. "<fileobject>) and maybe attribute
+// Write out a starting tag (e.g. "<fileobject>) and maybe an attribute as well
 //-----------------------------------------------------------------
 VOID xml_tagout(HANDLE hFile, LPTSTR tag, LPTSTR attribute)
 {
@@ -259,7 +258,6 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 	LPTSTR lpszFileObject;			// The fileobject tag
 	LPTSTR lpszFileObjectAttribute; // The fileobject tag delta attribute
 	LPTSTR lpszFileName;			// Full path and file name
-	//LPTSTR lpsznormFileName;		// Normalised full path
 	DWORD FileSize = 0;				// File size
 	TCHAR lpszSizeString[64];
 	LPTSTR lpszMetaType = TEXT("");
@@ -305,8 +303,8 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 	*/
 
 	// Write full path (filename) to XML report
-	// Need a check here for 
-	// 1) & ()
+	// Need a check here for:
+	// 1) & tp &amp; (ampersand)
 	// 2) ' to &apos; (single quote)
 	lpszFileName = xml_ampersand_check(lpszFileName);
 	lpszFileName = xml_apos_check(lpszFileName);
@@ -320,7 +318,7 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 	}
 
 	// Determine meta_type then write: files = 1, directories = 2
-	if ((FILEADD == nActionType) || (FILEMODI == nActionType) || (FILEDEL == nActionType)) {
+	if ((FILEADD == nActionType) || (FILEMODI == nActionType) || (FILEDEL == nActionType) || (FILECHNG == nActionType)) {
 		lpszMetaType = TEXT("1");
 	}
 	if ((DIRADD == nActionType) || (DIRMODI == nActionType) || (DIRDEL == nActionType)) {
@@ -365,7 +363,6 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 
 	// Write FileObject end element 
 	xml_ctagout(hFile, TEXT("fileobject"));
-	//MYFREE(normFileName);
 }
 
 //-----------------------------------------------------------------
@@ -398,12 +395,12 @@ VOID PopulateCellObject(HANDLE hFile, DWORD nActionType, LPCOMPRESULT lpCR)
 	xml_tagout(hFile, lpszCellObject, lpszCellObjectAttribute);
 
 	// Allocate some memory for CellObject properties
-	//lpszCellPath = MYALLOC0((MAX_PATH * 4) * sizeof(TCHAR));
 	lpszCellPath = MYALLOC0(MAX_PATH * sizeof(TCHAR));
 	// Aparently value names can be long!
 	// https://msdn.microsoft.com/en-us/library/windows/desktop/ms724872%28v=vs.85%29.aspx
 	// Key name	  = 255 characters
 	// Value name = 16,383 characters
+	// How to correctly handle in problematic cases?...
 
 	// Process Registry Keys
 	if ((KEYDEL == nActionType) || (KEYADD == nActionType)) 
@@ -418,9 +415,20 @@ VOID PopulateCellObject(HANDLE hFile, DWORD nActionType, LPCOMPRESULT lpCR)
 		lpszCellPath = xml_gt_check(lpszCellPath);
 		lpszCellPath = xml_lt_check(lpszCellPath);
 
+		// Format mtime
+		LPTSTR lpszLastWriteTime;
+		SYSTEMTIME stLastWriteTime;
+		
+		FileTimeToSystemTime(&lpKC->ftLastWriteTime, &stLastWriteTime);
+		lpszLastWriteTime = MYALLOC0(21 * sizeof(TCHAR));
+		_sntprintf(lpszLastWriteTime, 21, TEXT("%i-%02i-%02iT%02i:%02i:%02iZ"),
+			stLastWriteTime.wYear, stLastWriteTime.wMonth, stLastWriteTime.wDay, stLastWriteTime.wHour, stLastWriteTime.wMinute, stLastWriteTime.wSecond);
+
 		// Write Registry key entry to RegXML report
 		xml_out2s(hFile, TEXT("cellpath"), lpszCellPath);
 		xml_out2s(hFile, TEXT("name_type"), TEXT("k"));
+		xml_out2s(hFile, TEXT("mtime"), lpszLastWriteTime);
+		
 	}
 
 	// Process Registry Values
@@ -578,49 +586,6 @@ VOID StartAPXML(LPTSTR lpszStartDate, LPTSTR lpszAppName, LPTSTR lpszAppVersion,
 	xml_out2s(hFileAPXML, TEXT("start_date"), lpszStartDate);
 	xml_ctagout(hFileAPXML, TEXT("execution_environment"));
 	xml_ctagout(hFileAPXML, TEXT("creator"));
-}
-
-//-----------------------------------------------------------------
-// Start/open applciation profile life cycle tag
-//----------------------------------------------------------------- 
-VOID StartAPXMLTag(LPTSTR tag)
-{
-	xml_tagout(hFileAPXML, tag, TEXT(""));
-	/*
-	TCHAR deltaCount[64];
-	xml_tagout(hFileAPXML, TEXT("delta_count"), TEXT(""));
-	_itot_s(CompareResult.stcAdded.cFiles, deltaCount, 64, 10);
-	xml_out2s(hFileAPXML, TEXT("new_files"), deltaCount);
-	_itot_s(CompareResult.stcModified.cFiles, deltaCount, 64, 10);
-	xml_out2s(hFileAPXML, TEXT("mod_files"), deltaCount);
-	_itot_s(CompareResult.stcDeleted.cFiles, deltaCount, 64, 10);
-	xml_out2s(hFileAPXML, TEXT("del_files"), deltaCount);
-	_itot_s(CompareResult.stcAdded.cDirs, deltaCount, 64, 10);
-	xml_out2s(hFileAPXML, TEXT("new_dirs"), deltaCount);
-	_itot_s(CompareResult.stcModified.cDirs, deltaCount, 64, 10);
-	xml_out2s(hFileAPXML, TEXT("mod_dirs"), deltaCount);
-	_itot_s(CompareResult.stcDeleted.cDirs, deltaCount, 64, 10);
-	xml_out2s(hFileAPXML, TEXT("del_dirs"), deltaCount);
-	_itot_s(CompareResult.stcAdded.cKeys, deltaCount, 64, 10);
-	xml_out2s(hFileAPXML, TEXT("new_keys"), deltaCount);
-	_itot_s(CompareResult.stcDeleted.cKeys, deltaCount, 64, 10);
-	xml_out2s(hFileAPXML, TEXT("del_keys"), deltaCount);
-	_itot_s(CompareResult.stcAdded.cValues, deltaCount, 64, 10);
-	xml_out2s(hFileAPXML, TEXT("new_values"), deltaCount);
-	_itot_s(CompareResult.stcModified.cValues, deltaCount, 64, 10);
-	xml_out2s(hFileAPXML, TEXT("mod_values"), deltaCount);
-	_itot_s(CompareResult.stcDeleted.cValues, deltaCount, 64, 10);
-	xml_out2s(hFileAPXML, TEXT("del_values"), deltaCount);
-	xml_ctagout(hFileAPXML, TEXT("delta_count"));
-	*/
-}
-
-//-----------------------------------------------------------------
-// End/close applciation profile life cycle tag
-//----------------------------------------------------------------- 
-VOID EndAPXMLTag(LPTSTR tag)
-{
-	xml_ctagout(hFileAPXML, tag);
 }
 
 //-----------------------------------------------------------------

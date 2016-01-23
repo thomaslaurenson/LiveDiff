@@ -402,13 +402,10 @@ VOID CompareFiles(LPFILECONTENT lpStartFC1, LPFILECONTENT lpStartFC2)
 				else 
 				{
 					// File data differ, so file is modified
-					if (dwPrecisionLevel > 1)
-					{
-						lpFC2->fFileMatch = ISMODI;
-						CompareResult.stcChanged.cFiles++;
-						CompareResult.stcModified.cFiles++;
-						CreateNewResult(FILEMODI, lpFC1, lpFC2);
-					}
+					lpFC2->fFileMatch = ISMODI;
+					CompareResult.stcChanged.cFiles++;
+					CompareResult.stcModified.cFiles++;
+					CreateNewResult(FILEMODI, lpFC1, lpFC2);
 				}
 			}
 			else
@@ -421,13 +418,10 @@ VOID CompareFiles(LPFILECONTENT lpStartFC1, LPFILECONTENT lpStartFC2)
 				else 
 				{
 					// Dir data differ, so dir is modified
-					if (dwPrecisionLevel > 1)
-					{
-						lpFC2->fFileMatch = ISMODI;
-						CompareResult.stcChanged.cDirs++;
-						CompareResult.stcModified.cDirs++;
-						CreateNewResult(DIRMODI, lpFC1, lpFC2);
-					}
+					lpFC2->fFileMatch = ISMODI;
+					CompareResult.stcChanged.cDirs++;
+					CompareResult.stcModified.cDirs++;
+					CreateNewResult(DIRMODI, lpFC1, lpFC2);
 				}
 				// Compare sub files if any
 				if ((NULL != lpFC1->lpFirstSubFC) || (NULL != lpFC2->lpFirstSubFC)) {
@@ -653,6 +647,8 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 			// Copy file data
 			lpFatherFC->nWriteDateTimeLow = FindData.ftLastWriteTime.dwLowDateTime;
 			lpFatherFC->nWriteDateTimeHigh = FindData.ftLastWriteTime.dwHighDateTime;
+			lpFatherFC->nAccessDateTimeLow = FindData.ftLastWriteTime.dwLowDateTime;
+			lpFatherFC->nAccessDateTimeHigh = FindData.ftLastWriteTime.dwHighDateTime;
 			lpFatherFC->nFileSizeLow = FindData.nFileSizeLow;
 			lpFatherFC->nFileSizeHigh = FindData.nFileSizeHigh;
 			lpFatherFC->nFileAttributes = FindData.dwFileAttributes;
@@ -687,6 +683,8 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 	// b) process entry then find next
 	do {
 		lpszFullName = NULL;
+		BOOL calculateHash = TRUE;
+		BOOL found = FALSE;
 
 		// Check if file is to be GENERIC excluded (dot dirs)
 		if ((NULL == FindData.cFileName)
@@ -708,7 +706,6 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 		_tcscpy(lpFC->lpszFileName, FindData.cFileName);
 
 		// Blacklisting implementation for files		
-		BOOL found = FALSE;
 		if (ISFILE(FindData.dwFileAttributes))
 		{
 			if (dwBlacklist == 1)
@@ -729,24 +726,35 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 			}
 			else if (dwBlacklist == 2)
 			{
-				// Not the first snapshot, so filter known paths
+				// Not the first snapshot, so either:
+				// 1) If blacklisting enabled: Ignore file if its in the blacklist
+				// 2) If hashing enabled (and not blacklisting): Mark file as not to be hashed
 				LPTSTR lpszFullPath;
 				lpszFullPath = GetWholeFileName(lpFC, 4);
 				found = TrieSearchPath(blacklistFILES->children, lpszFullPath);
-				//printf("%s\n", found ? "true" : "false");
-				if (found) {
-					lpShot->stCounts.cFilesBlacklist++;
-					MYFREE(lpszFullPath);
-					FreeAllFileContents(lpFC);
-
-					continue;  // ignore this entry and continue with next brother value
+				if (found)
+				{
+					if (performDynamicBlacklisting)
+					{
+						lpShot->stCounts.cFilesBlacklist++;
+						MYFREE(lpszFullPath);
+						FreeAllFileContents(lpFC);
+						continue;  // ignore this entry and continue with next brother value
+					}
+					if (performSHA1Hashing || performMD5Hashing)
+					{
+						lpShot->stCounts.cFiles++;
+						MYFREE(lpszFullPath);
+						calculateHash = FALSE;
+					}
 				}
-				else {
+				else
+				{
 					MYFREE(lpszFullPath);
 				}
 			}
 		}
-
+					
 		// Copy pointer to current file into caller's pointer
 		if (NULL != lplpCaller) {
 			*lplpCaller = lpFC;
@@ -763,16 +771,19 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 		// Copy file data
 		lpFC->nWriteDateTimeLow = FindData.ftLastWriteTime.dwLowDateTime;
 		lpFC->nWriteDateTimeHigh = FindData.ftLastWriteTime.dwHighDateTime;
+		lpFC->nAccessDateTimeLow = FindData.ftLastWriteTime.dwLowDateTime;
+		lpFC->nAccessDateTimeHigh = FindData.ftLastWriteTime.dwHighDateTime;
 		lpFC->nFileSizeLow = FindData.nFileSizeLow;
 		lpFC->nFileSizeHigh = FindData.nFileSizeHigh;
 		lpFC->nFileAttributes = FindData.dwFileAttributes;
 
 		// Calculate file hash (computationally intensive!)
-		// This should only be included in the following scenarios:
-		// 1) If the file is not found in the BST and blacklist filtering is specified
+		// This should only be executed in the following scenarios:
+		// 1) If the file system entry is a data file 
+		// 2) If the data file is not blacklisted (previously known)
 		if (ISFILE(FindData.dwFileAttributes))
 		{
-			if (dwBlacklist == 2) {
+			if (dwBlacklist == 2 && calculateHash) {
 			    if (performSHA1Hashing)
 			    {
 				    lpFC->cchSHA1 = 40;
@@ -789,12 +800,12 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 		}
 
 		// Print file system shot status
-		if (dwBlacklist == 2) {
+		if (dwBlacklist == 2 && performDynamicBlacklisting) {
 			printf("  > Dirs: %d  Files: %d  Blacklisted Files: %d\r", lpShot->stCounts.cDirs, lpShot->stCounts.cFiles, lpShot->stCounts.cFilesBlacklist);
 		}
 		else {
 			printf("  > Dirs: %d  Files: %d\r", lpShot->stCounts.cDirs, lpShot->stCounts.cFiles);
-		}		
+		}
 
 		// ATTENTION!!! FindData will be INVALID from this point on, due to recursive calls
 		// If the entry is a directory, then do a recursive call for it

@@ -917,24 +917,35 @@ LPKEYCONTENT GetRegistrySnap(LPSNAPSHOT lpShot, HKEY hRegKey, LPTSTR lpszRegKeyN
 
 	// Extra local block to reduce stack usage due to recursive calls
 	{
-		//LPTSTR lpszFullName;
 		DWORD cValues;
 		DWORD cchMaxValueName;
 		DWORD cbMaxValueData;
+		FILETIME ftLastWriteTime;
 
-		// Create new key content
-		// put in a separate var for later use
+		// Create new key content, put in a separate var for later use
 		lpKC = MYALLOC0(sizeof(KEYCONTENT));
 
 		// Set father of current key
 		lpKC->lpFatherKC = lpFatherKC;
 
-		// Set key name
+		// Set key name, key name length
 		lpKC->lpszKeyName = lpszRegKeyName;
 		lpKC->cchKeyName = _tcslen(lpKC->lpszKeyName);
-
+		
 		// Check if key is to be excluded
-		// Removed this code, because I am not excluding Registry keys, only values!	
+		//if (dwBlacklist == 2 && performDynamicBlacklisting) {
+		//	BOOL found = FALSE;
+		//	LPTSTR lpszFullPath;
+		//	lpszFullPath = GetWholeValueName(lpKC, FALSE);
+		//	found = TrieSearchPath(blacklistREGISTRY->children, lpszFullPath);
+		//	if (found) 
+		//	{
+		//		MYFREE(lpszFullPath);
+		//		FreeAllKeyContents(lpKC);
+		//		return NULL;
+		//	}
+		//	MYFREE(lpszFullPath);
+		//}
 
 		// Examine key for values and sub keys, get counts and also maximum lengths of names plus value data
 		nErrNo = RegQueryInfoKey(
@@ -949,13 +960,15 @@ LPKEYCONTENT GetRegistrySnap(LPSNAPSHOT lpShot, HKEY hRegKey, LPTSTR lpszRegKeyN
 			&cchMaxValueName,   // in TCHARs *not* incl. NULL char
 			&cbMaxValueData,
 			NULL,
-			NULL
+			&ftLastWriteTime
 			);
 		if (ERROR_SUCCESS != nErrNo) {
 			// TODO: process/protocol issue in some way, do not silently ignore it (at least in Debug builds)
 			FreeAllKeyContents(lpKC);
 			return NULL;
 		}
+
+		lpKC->ftLastWriteTime = ftLastWriteTime;
 
 		// Copy pointer to current key into caller's pointer
 		if (NULL != lplpCaller) {
@@ -1035,7 +1048,7 @@ LPKEYCONTENT GetRegistrySnap(LPSNAPSHOT lpShot, HKEY hRegKey, LPTSTR lpszRegKeyN
 					_tcscpy(lpVC->lpszValueName, lpszDefaultValueName);
 				}
 
-				// Blacklisting implementation for Registry values		
+				// Blacklisting implementation for known Registry values		
 				if (dwBlacklist == 1)
 				{
 					// First snapshot, therefore populate the Trie (Prefix Tree)
@@ -1052,7 +1065,7 @@ LPKEYCONTENT GetRegistrySnap(LPSNAPSHOT lpShot, HKEY hRegKey, LPTSTR lpszRegKeyN
 
 					//continue; // ignore this entry and continue with next brother value
 				}
-				else if (dwBlacklist == 2)
+				else if (dwBlacklist == 2 && performDynamicBlacklisting)
 				{
 					// Not the first snapshot, so filter known Registry value paths
 					BOOL found = FALSE;
@@ -1102,7 +1115,7 @@ LPKEYCONTENT GetRegistrySnap(LPSNAPSHOT lpShot, HKEY hRegKey, LPTSTR lpszRegKeyN
 	}  // End of extra local block
 
 	// Print Registry shot status
-	if (dwBlacklist == 2) {
+	if (dwBlacklist == 2 && performDynamicBlacklisting) {
 		printf("  > Keys: %d  Values: %d  Blacklisted Values: %d\r", lpShot->stCounts.cKeys, lpShot->stCounts.cValues, lpShot->stCounts.cValuesBlacklist);
 	}
 	else {
@@ -1132,6 +1145,7 @@ LPKEYCONTENT GetRegistrySnap(LPSNAPSHOT lpShot, HKEY hRegKey, LPTSTR lpszRegKeyN
 			// Extra local block to reduce stack usage due to recursive calls
 				{
 					DWORD cchSubKeyName;
+					FILETIME ftLastWriteTime;
 
 					// Enumerate sub key
 					cchSubKeyName = (DWORD)nStringBufferSize;
@@ -1141,14 +1155,17 @@ LPKEYCONTENT GetRegistrySnap(LPSNAPSHOT lpShot, HKEY hRegKey, LPTSTR lpszRegKeyN
 						NULL,
 						NULL,
 						NULL,
-						NULL);
+						&ftLastWriteTime);
+
 					if (ERROR_NO_MORE_ITEMS == nErrNo) {
 						break;
 					}
+
 					if (ERROR_SUCCESS != nErrNo) {
 						// TODO: process/protocol issue in some way, do not silently ignore it (at least in Debug builds)
 						continue;
 					}
+
 					lpStringBuffer[cchSubKeyName] = (TCHAR)'\0';  // safety NULL char
 
 					// Copy sub key name

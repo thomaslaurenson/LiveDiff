@@ -49,7 +49,7 @@ typedef unsigned __int64 QWORD, NEAR *PQWORD, FAR *LPQWORD;
 #ifdef USEHEAPALLOC_DANGER
 extern HANDLE hHeap;
 // MSDN doc say use HEAP_NO_SERIALIZE is not good for process heap :( 
-// so change fromm 1 to 0 which is slower than using 1
+// so change from 1 to 0 which is slower than using 1
 #define MYALLOC(x)  HeapAlloc(hHeap,0,x)
 #define MYALLOC0(x) HeapAlloc(hHeap,8,x) // (HEAP_NO_SERIALIZE|) HEAP_ZERO_MEMORY ,1|8
 #define MYFREE(x)   HeapFree(hHeap,0,x)
@@ -86,6 +86,7 @@ BOOL fUseLongRegHead;
 #define ISDEL           2
 #define ISADD           3
 #define ISMODI          4
+#define ISCHNG			5
 
 // ----------------------------------------------------------------------
 // Definitions for digital artifact type and modification type
@@ -101,6 +102,7 @@ BOOL fUseLongRegHead;
 #define FILEDEL         9
 #define FILEADD         10
 #define FILEMODI        11
+#define FILECHNG		12
 
 // ----------------------------------------------------------------------
 // Definition for output files
@@ -116,13 +118,13 @@ BOOL fUseLongRegHead;
 // ----------------------------------------------------------------------
 struct _COUNTS
 {
-	DWORD cAll;			// Count for all digital artifacts
-	DWORD cKeys;		// Count for Registry keys
-	DWORD cValues;		// Count for Registry values
-	DWORD cDirs;		// Count for file system directories
-	DWORD cFiles;		// Count for file system files
-	DWORD cFilesBlacklist;		// Count for blacklisted file system files
-	DWORD cValuesBlacklist;		// Count for blacklisted Registry values
+	DWORD cAll;				// Count for all digital artifacts
+	DWORD cKeys;			// Count for Registry keys
+	DWORD cValues;			// Count for Registry values
+	DWORD cDirs;			// Count for file system directories
+	DWORD cFiles;			// Count for file system files
+	DWORD cFilesBlacklist;	// Count for blacklisted file system files
+	DWORD cValuesBlacklist;	// Count for blacklisted Registry values
 };
 typedef struct _COUNTS COUNTS, FAR *LPCOUNTS;
 
@@ -149,7 +151,7 @@ struct _KEYCONTENT
 {
 	LPTSTR lpszKeyName;                     // Pointer to key's name
 	size_t cchKeyName;                      // Length of key's name in chars
-	// Add in modified time (last write time)
+	FILETIME ftLastWriteTime;				// Registry key last write time
 	LPVALUECONTENT lpFirstVC;               // Pointer to key's first value
 	struct _KEYCONTENT FAR *lpFirstSubKC;   // Pointer to key's first sub key
 	struct _KEYCONTENT FAR *lpBrotherKC;    // Pointer to key's brother
@@ -167,9 +169,11 @@ struct _FILECONTENT
 	size_t cchFileName;                     // Length of file's name in chars
 	DWORD  nWriteDateTimeLow;               // File write time [LOW  DWORD]
 	DWORD  nWriteDateTimeHigh;              // File write time [HIGH DWORD]
+	DWORD  nAccessDateTimeLow;              // File access time [LOW  DWORD]
+	DWORD  nAccessDateTimeHigh;             // File access time [HIGH DWORD]
 	DWORD  nFileSizeLow;                    // File size [LOW  DWORD]
 	DWORD  nFileSizeHigh;                   // File size [HIGH DWORD]
-	DWORD  nFileAttributes;                 // File attributes (e.g. directory)
+	DWORD  nFileAttributes;                 // File attributes (e.g. directory or file)
 	LPTSTR lpszSHA1;						// SHA1 hash of file
 	size_t cchSHA1;							// Length of file's SHA1 in chars
 	LPTSTR lpszMD5;							// MD5 hash of file
@@ -177,7 +181,7 @@ struct _FILECONTENT
 	struct _FILECONTENT FAR *lpFirstSubFC;  // Pointer to file's first sub file
 	struct _FILECONTENT FAR *lpBrotherFC;   // Pointer to file's brother
 	struct _FILECONTENT FAR *lpFatherFC;    // Pointer to file's father
-	DWORD  fFileMatch;                      // Flags used when comparing, until 1.8.2 it was byte
+	DWORD fFileMatch;                       // Flags used when comparing
 };
 typedef struct _FILECONTENT FILECONTENT, FAR *LPFILECONTENT;
 
@@ -273,8 +277,6 @@ trieNode_t *blacklistREGISTRY;
 
 BOOL populateStaticBlacklist(LPTSTR lpszFileName, trieNode_t * blacklist);
 
-
-
 // ----------------------------------------------------------------------
 // External variables
 // ----------------------------------------------------------------------
@@ -340,8 +342,6 @@ BOOL reOpenAPXMLReport(LPTSTR lpszAppName);
 
 // dfxml.c global functions
 VOID StartAPXML(LPTSTR lpszStartDate, LPTSTR lpszAppName, LPTSTR lpszAppVersion, LPTSTR lpszCommandLine, LPTSTR lpszWindowsVersion);
-VOID StartAPXMLTag(LPTSTR tag);
-VOID EndAPXMLTag(LPTSTR tag);
 VOID EndAPXML();
 VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR);
 VOID PopulateCellObject(HANDLE hFile, DWORD nActionType, LPCOMPRESULT lpCR);

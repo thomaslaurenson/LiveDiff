@@ -20,12 +20,8 @@ along with LiveDiff.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "global.h"
 
-// Set up file handles for output
-HANDLE hFileDFXML;		// DFXML report file handle
-HANDLE hFileREGXML;		// RegXML report file handle
-HANDLE hFileAPXML;		// APXML report file handle
-
-LANGUAGETEXT asLangTexts[cLangStrings];
+HANDLE hFileAPXML; // APXML report file handle for ouput
+LANGUAGETEXT asLangTexts[cLangStrings]; // Set up language string for display
 
 // ----------------------------------------------------------------------
 // Parse LPCOMPRESULT to single file system entry, then pass to PopulateFileObject
@@ -34,12 +30,34 @@ VOID ParseLPCompResultsFile(DWORD nActionType, LPCOMPRESULT lpStartCR)
 {
 	LPCOMPRESULT lpCR;
 	// Loop through each item in CompareResults structure
-	for (lpCR = lpStartCR; NULL != lpCR; lpCR = lpCR->lpNextCR) {
-		if ((nActionType == DIRADD) || (nActionType == DIRMODI) || (nActionType == FILEADD) || (nActionType == FILEMODI)) {
-			if (NULL != lpCR->lpContentNew) {
+	for (lpCR = lpStartCR; NULL != lpCR; lpCR = lpCR->lpNextCR) 
+	{
+		// THE OLD OUTPUT METHOD
+		//if ((nActionType == DIRADD) || (nActionType == DIRMODI) || (nActionType == FILEADD) || (nActionType == FILEMODI)) {
+		//	if (NULL != lpCR->lpContentNew) {
+		//		PopulateFileObject(hFileAPXML, nActionType, lpCR->lpContentNew);
+		//	}
+		//}
+		if (dwPrecisionLevel >= 1) {
+			// Precision level 1: NEW files, directories
+			if ((nActionType == DIRADD) || (nActionType == FILEADD) && (NULL != lpCR->lpContentNew)) {
+					PopulateFileObject(hFileAPXML, nActionType, lpCR->lpContentNew);
+			}
+		}
+		if (dwPrecisionLevel >= 2) {
+			// Precision level 2: MODIFIED files, directories
+			if ((nActionType == DIRMODI) || (nActionType == FILEMODI) && (NULL != lpCR->lpContentNew)) {
 				PopulateFileObject(hFileAPXML, nActionType, lpCR->lpContentNew);
 			}
 		}
+		if (dwPrecisionLevel >= 3) {
+			// Precision level 3: CHANGED (properties) files, directories
+			if ((nActionType == FILECHNG) && (NULL != lpCR->lpContentNew)) {
+				PopulateFileObject(hFileAPXML, nActionType, lpCR->lpContentNew);
+			}
+		}
+
+		// We are always going to output deleted content, therefore, populate FileObjects
 		if ((nActionType == DIRDEL) || (nActionType == FILEDEL)) {
 			if (NULL != lpCR->lpContentOld) {
 				PopulateFileObject(hFileAPXML, nActionType, lpCR->lpContentOld);
@@ -55,12 +73,29 @@ VOID ParseLPCompResultsRegistry(DWORD nActionType, LPCOMPRESULT lpStartCR)
 {
 	LPCOMPRESULT lpCR;
 	// Loop through each item in CompareResults structure
-	for (lpCR = lpStartCR; NULL != lpCR; lpCR = lpCR->lpNextCR) {
-		if ((nActionType == KEYADD) || (nActionType == VALADD) || (nActionType == VALMODI)) {
-			if (NULL != lpCR->lpContentNew) {
+	for (lpCR = lpStartCR; NULL != lpCR; lpCR = lpCR->lpNextCR) 
+	{
+		// THE OLD OUTPUT METHOD
+		//if ((nActionType == KEYADD) || (nActionType == VALADD) || (nActionType == VALMODI)) {
+		//	if (NULL != lpCR->lpContentNew) {
+		//		PopulateCellObject(hFileAPXML, nActionType, lpCR->lpContentNew);
+		//	}
+		//}
+		if (dwPrecisionLevel >= 1) {
+			// Precision level 1: NEW keys, values
+			if ((nActionType == KEYADD) || (nActionType == VALADD) && (NULL != lpCR->lpContentNew)) {
 				PopulateCellObject(hFileAPXML, nActionType, lpCR->lpContentNew);
 			}
 		}
+		if (dwPrecisionLevel >= 2) {
+			// Precision level 2: MODIFIED keys, values
+			// Need to include Registry key modified (last write) time to support modified key values
+			if ((nActionType == VALMODI) && (NULL != lpCR->lpContentNew)) {
+				PopulateCellObject(hFileAPXML, nActionType, lpCR->lpContentNew);
+			}
+		}
+
+		// We are always going to output deleted content, therefore, populate FileObjects
 		if ((nActionType == KEYDEL) || (nActionType == VALDEL)) {
 			if (NULL != lpCR->lpContentOld) {
 				PopulateCellObject(hFileAPXML, nActionType, lpCR->lpContentOld);
@@ -129,6 +164,9 @@ BOOL reOpenAPXMLReport(LPTSTR lpszAPXMLDestFileName)
 	return TRUE;
 }
 
+// ----------------------------------------------------------------------
+// Generate APXML report entries based on content from CompareResults structure
+// ----------------------------------------------------------------------
 BOOL GenerateAPXMLReport(VOID)
 {
 	// TL: Start making APXML

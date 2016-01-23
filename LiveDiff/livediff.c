@@ -25,7 +25,7 @@ LPSNAPSHOT lpShot;			// Pointer to current Shot
 LPTSTR lpszCommandline;		// The LiveDiff command line
 LPTSTR lpszWindowsVersion;	// The Windows version number
 LPTSTR lpszStartDate;		// Program start date
-LPTSTR lpszAppState;
+LPTSTR lpszAppState;		// Application state
 
 //-----------------------------------------------------------------
 // LiveDiff wmain function
@@ -68,7 +68,7 @@ int wmain(DWORD argc, TCHAR *argv[])
 
 	// Initialise main argument variables
 	saveSnapShots = FALSE;				// Are we saving snapshots after data collection
-	performSHA1Hashing = TRUE;			// Are we performing SHA1 hashing (default is true)
+	performSHA1Hashing = FALSE;			// Are we performing SHA1 hashing
 	performMD5Hashing = FALSE;			// Are we performing MD5 hashing
 	performDynamicBlacklisting = FALSE; // Are we performing dynamic blacklisting
 	
@@ -76,6 +76,7 @@ int wmain(DWORD argc, TCHAR *argv[])
 	LPTSTR loadFileName1 = MYALLOC0(MAX_PATH * sizeof(TCHAR));  // Snapshot1
 	LPTSTR loadFileName2 = MYALLOC0(MAX_PATH * sizeof(TCHAR));  // Snapshot2
 
+	// Command line string, populated when parsing command line arguments
 	lpszCommandline = MYALLOC0(100 * sizeof(TCHAR));
 
 	// Variables for static blacklists
@@ -84,7 +85,6 @@ int wmain(DWORD argc, TCHAR *argv[])
 	LPTSTR lpszFileBlacklist = MYALLOC0(MAX_PATH * sizeof(TCHAR));
 	LPTSTR lpszRegistryBlacklist = MYALLOC0(MAX_PATH * sizeof(TCHAR));
 
-	// 
 	// Default precision level
 	dwPrecisionLevel = 2;
 
@@ -118,11 +118,12 @@ int wmain(DWORD argc, TCHAR *argv[])
 			printf("                  1 = new/deleted entries\n"); 
 			printf("                  2 = new/deleted/modified entries\n");
 			printf("                  3 = new/deleted/modified/changed entries;\n");
-			printf("             -c Select hash algorithm [default SHA1]\n\n");
+			printf("             -c Select hash algorithm [default NONE]\n");
+			printf("                  -c md5, -c sha1, -c md5,sha1\n\n");
 			printf("   Examples: LiveDiff.exe --profile -b\n\n");
 			printf("             LiveDiff.exe -s\n");
 			printf("             LiveDiff.exe -c md5,sha1\n");
-			printf("             LiveDiff.exe -c md5 -p 0\n");
+			printf("             LiveDiff.exe -c md5 -p 1\n");
 			printf("             LiveDiff.exe -f file-blacklist.txt\n");
 			printf("             LiveDiff.exe --load 1.shot 2.shot\n\n");
 			return 0;
@@ -156,6 +157,7 @@ int wmain(DWORD argc, TCHAR *argv[])
 			// Detemine if we are performing dynamic blacklisting
 			if (_tcscmp(argv[i], _T("-b")) == 0) {
 				dwBlacklist = 1;
+				performDynamicBlacklisting = TRUE;
 			}
 			// Determine what hash algorithm to use
 			if (_tcscmp(argv[i], _T("-c")) == 0) {
@@ -198,6 +200,7 @@ int wmain(DWORD argc, TCHAR *argv[])
 					exit(1);
 				}
 				dwBlacklist = 1;
+				performDynamicBlacklisting = TRUE;
 			}
 			// Determine if we have a static Registry blacklist
 			if (_tcscmp(argv[i], _T("-r")) == 0) {
@@ -211,6 +214,7 @@ int wmain(DWORD argc, TCHAR *argv[])
 					exit(1);
 				}
 				dwBlacklist = 1;
+				performDynamicBlacklisting = TRUE;
 			}
 			if (_tcscmp(argv[i], _T("-p")) == 0) 
 			{
@@ -218,13 +222,13 @@ int wmain(DWORD argc, TCHAR *argv[])
 					printf(">>> ERROR: Please enter a precision level. Exiting.\n");
 					exit(1);
 				}
-				if (_tcscmp(argv[i + 1], _T("0")) == 0) {
+				if (_tcscmp(argv[i + 1], _T("1")) == 0) {
 					dwPrecisionLevel = 1;
 				}
-				else if (_tcscmp(argv[i + 1], _T("1")) == 0) {
+				else if (_tcscmp(argv[i + 1], _T("2")) == 0) {
 					dwPrecisionLevel = 2;
 				}
-				else if (_tcscmp(argv[i + 1], _T("2")) == 0) {
+				else if (_tcscmp(argv[i + 1], _T("3")) == 0) {
 					dwPrecisionLevel = 3;
 				}
 				else {
@@ -277,7 +281,6 @@ int wmain(DWORD argc, TCHAR *argv[])
 		// Set blacklisting status to '2'
 		dwBlacklist = 2;
 	}
-	
 
 	// From here, call the appropriate function for mode of operation selected by user
 	if (modeOfOperation == TEXT("PROFILE"))
@@ -579,12 +582,10 @@ BOOL snapshotProfile()
 
 		// Insert comparison results to parent tag body
 		printf("\n>>> Generating output...\n");
-		//StartAPXMLTag(lpszLifeCycleState);
 		size_t cchlpszLifeCycleState = _tcslen(lpszLifeCycleState);
 		lpszAppState = MYALLOC0((cchlpszLifeCycleState + 1) * sizeof(TCHAR));
 		_tcscpy(lpszAppState, lpszLifeCycleState);
 		GenerateAPXMLReport();
-		//EndAPXMLTag(lpszLifeCycleState);
 
 		// Done.
 		printf("\n>>> Finished.\n");
@@ -659,9 +660,9 @@ BOOL snapshotProfileReboot()
 
 	// Insert life cycle report body
 	printf("\n>>> Generating output...\n");
-	StartAPXMLTag(lpszLifeCycleState);
+	//StartAPXMLTag(lpszLifeCycleState);
 	GenerateAPXMLReport();
-	EndAPXMLTag(lpszLifeCycleState);
+	//EndAPXMLTag(lpszLifeCycleState);
 
 	// Close APXML report tag
 	EndAPXML();
