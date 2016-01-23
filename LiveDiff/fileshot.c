@@ -549,7 +549,6 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 	{
 		LPTSTR lpszFindFileName;
 		lpszFindFileName = NULL;
-
 		// Get father file data if not already provided (=called from FileShot)
 		// lpFatherFC only equals "C:\" and is called once at start
 		if (NULL == lpFatherFC) 
@@ -704,6 +703,29 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 		// Allocate memory copy file name to FILECONTENT
 		lpFC->lpszFileName = MYALLOC0((lpFC->cchFileName + 1) * sizeof(TCHAR));
 		_tcscpy(lpFC->lpszFileName, FindData.cFileName);
+
+		// Static blacklist for directories
+		if (ISDIR(FindData.dwFileAttributes))
+		{
+			if (performStaticBlacklisting)
+			{
+				LPTSTR lpszFullPath;
+				lpszFullPath = GetWholeFileName(lpFC, 4);
+
+				found = TrieSearchPath(blacklistDIRS->children, lpszFullPath);
+				if (found)
+				{
+					lpShot->stCounts.cFilesBlacklist++;
+					MYFREE(lpszFullPath);
+					FreeAllFileContents(lpFC);
+					continue;  // ignore this entry and continue with next brother value
+				}
+				else
+				{
+					MYFREE(lpszFullPath);
+				}
+			}
+		}
 
 		// Blacklisting implementation for files		
 		if (ISFILE(FindData.dwFileAttributes))

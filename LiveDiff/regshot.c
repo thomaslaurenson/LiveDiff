@@ -931,21 +931,21 @@ LPKEYCONTENT GetRegistrySnap(LPSNAPSHOT lpShot, HKEY hRegKey, LPTSTR lpszRegKeyN
 		// Set key name, key name length
 		lpKC->lpszKeyName = lpszRegKeyName;
 		lpKC->cchKeyName = _tcslen(lpKC->lpszKeyName);
-		
+
 		// Check if key is to be excluded
-		//if (dwBlacklist == 2 && performDynamicBlacklisting) {
-		//	BOOL found = FALSE;
-		//	LPTSTR lpszFullPath;
-		//	lpszFullPath = GetWholeValueName(lpKC, FALSE);
-		//	found = TrieSearchPath(blacklistREGISTRY->children, lpszFullPath);
-		//	if (found) 
-		//	{
-		//		MYFREE(lpszFullPath);
-		//		FreeAllKeyContents(lpKC);
-		//		return NULL;
-		//	}
-		//	MYFREE(lpszFullPath);
-		//}
+		if (performStaticBlacklisting) {
+			BOOL found = FALSE;
+			LPTSTR lpszFullPath;
+			lpszFullPath = GetWholeKeyName(lpKC, FALSE);
+			found = TrieSearchPath(blacklistKEYS->children, lpszFullPath);
+			if (found) 
+			{
+				MYFREE(lpszFullPath);
+				FreeAllKeyContents(lpKC);
+				return NULL;
+			}
+			MYFREE(lpszFullPath);
+		}
 
 		// Examine key for values and sub keys, get counts and also maximum lengths of names plus value data
 		nErrNo = RegQueryInfoKey(
@@ -1057,7 +1057,7 @@ LPKEYCONTENT GetRegistrySnap(LPSNAPSHOT lpShot, HKEY hRegKey, LPTSTR lpszRegKeyN
 					lpszFullPath = GetWholeValueName(lpVC, FALSE);
 					
 					// Add full path to Registry blacklist, then free path
-					TrieAdd(&blacklistREGISTRY, lpszFullPath);
+					TrieAdd(&blacklistVALUES, lpszFullPath);
 					MYFREE(lpszFullPath);
 					
 					// Increase value count for display purposes
@@ -1075,7 +1075,7 @@ LPKEYCONTENT GetRegistrySnap(LPSNAPSHOT lpShot, HKEY hRegKey, LPTSTR lpszRegKeyN
 					lpszFullPath = GetWholeValueName(lpVC, FALSE);
 
 					// Search the Registry blacklist prefix tree for path
-					found = TrieSearchPath(blacklistREGISTRY->children, lpszFullPath);
+					found = TrieSearchPath(blacklistVALUES->children, lpszFullPath);
 
 					// If path is found, skip to next entry, otherwise free the path and keep going
 					if (found) {

@@ -60,19 +60,6 @@ extern HANDLE hHeap;
 #endif
 
 // ----------------------------------------------------------------------
-// Registry hive naming conventions (short and long)
-// ----------------------------------------------------------------------
-LPTSTR lpszHKLMShort;
-LPTSTR lpszHKLMLong;
-#define CCH_HKLM_LONG  18
-
-LPTSTR lpszHKUShort;
-LPTSTR lpszHKULong;
-#define CCH_HKU_LONG  10
-
-BOOL fUseLongRegHead;
-
-// ----------------------------------------------------------------------
 // Definitions to distinguish file system directories and files
 // ----------------------------------------------------------------------
 #define ISDIR(x)  ( (x&FILE_ATTRIBUTE_DIRECTORY) != 0 )
@@ -272,11 +259,6 @@ typedef struct trieNode {
 	struct trieNode *parent;
 } trieNode_t;
 
-trieNode_t *blacklistFILES;
-trieNode_t *blacklistREGISTRY;
-
-BOOL populateStaticBlacklist(LPTSTR lpszFileName, trieNode_t * blacklist);
-
 // ----------------------------------------------------------------------
 // External variables
 // ----------------------------------------------------------------------
@@ -286,13 +268,32 @@ extern COMPRESULTS CompareResult;	// Compare result
 extern HANDLE hFile;				// Handle of file LiveDiff use
 extern BOOL fUseLongRegHead;		// Long Registry name
 
-DWORD dwBlacklist;
-BOOL performDynamicBlacklisting;
-BOOL performSHA1Hashing;
-BOOL performMD5Hashing;
+// Global command line variable arguments
 BOOL saveSnapShots;
 LPTSTR lpszAppState;
 DWORD dwPrecisionLevel;
+									
+// Global file hashing variable
+BOOL performSHA1Hashing;
+BOOL performMD5Hashing;
+
+// Global blacklisting variables
+DWORD dwBlacklist;
+BOOL performDynamicBlacklisting;
+BOOL performStaticBlacklisting;
+trieNode_t *blacklistFILES;
+trieNode_t *blacklistDIRS;
+trieNode_t *blacklistKEYS;
+trieNode_t *blacklistVALUES;
+
+// Global Registry hive naming conventions
+LPTSTR lpszHKLMShort;
+LPTSTR lpszHKLMLong;
+#define CCH_HKLM_LONG  18
+LPTSTR lpszHKUShort;
+LPTSTR lpszHKULong;
+#define CCH_HKU_LONG  10
+BOOL fUseLongRegHead;
 
 //-------------------------------------------------------------
 // Global LiveDiff function definitions
@@ -331,6 +332,7 @@ void TrieAdd(trieNode_t **root, wchar_t *key);
 trieNode_t *TrieCreateNode(wchar_t key);
 trieNode_t* TrieSearch(trieNode_t *root, const wchar_t *key);
 BOOL TrieSearchPath(trieNode_t *root, const wchar_t *key);
+BOOL populateStaticBlacklist(LPTSTR lpszFileName, trieNode_t * blacklist);
 
 // output.c global functions
 VOID SetTextsToDefaultLanguage(VOID);

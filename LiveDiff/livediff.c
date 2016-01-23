@@ -71,7 +71,8 @@ int wmain(DWORD argc, TCHAR *argv[])
 	performSHA1Hashing = FALSE;			// Are we performing SHA1 hashing
 	performMD5Hashing = FALSE;			// Are we performing MD5 hashing
 	performDynamicBlacklisting = FALSE; // Are we performing dynamic blacklisting
-	
+	performStaticBlacklisting = FALSE;	// Are we performing static blacklisting
+
 	// File name for previosuly saved snapshots to load
 	LPTSTR loadFileName1 = MYALLOC0(MAX_PATH * sizeof(TCHAR));  // Snapshot1
 	LPTSTR loadFileName2 = MYALLOC0(MAX_PATH * sizeof(TCHAR));  // Snapshot2
@@ -199,8 +200,8 @@ int wmain(DWORD argc, TCHAR *argv[])
 					printf(">>> ERROR: Invalid static file blacklist. Exiting.\n");
 					exit(1);
 				}
-				dwBlacklist = 1;
-				performDynamicBlacklisting = TRUE;
+				//dwBlacklist = 1;
+				performStaticBlacklisting = TRUE;
 			}
 			// Determine if we have a static Registry blacklist
 			if (_tcscmp(argv[i], _T("-r")) == 0) {
@@ -213,8 +214,8 @@ int wmain(DWORD argc, TCHAR *argv[])
 					printf(">>> ERROR: Invalid static Registry blacklist. Exiting.\n");
 					exit(1);
 				}
-				dwBlacklist = 1;
-				performDynamicBlacklisting = TRUE;
+				//dwBlacklist = 1;
+				performStaticBlacklisting = TRUE;
 			}
 			if (_tcscmp(argv[i], _T("-p")) == 0) 
 			{
@@ -249,23 +250,23 @@ int wmain(DWORD argc, TCHAR *argv[])
 	}
 
 	// Initialize blacklists (always do this, until a better check is written)
+	TrieCreate(&blacklistDIRS);
 	TrieCreate(&blacklistFILES);
-	TrieCreate(&blacklistREGISTRY);
-	printf("\n>>> Implementing LiveDiff blacklisting\n");
+	TrieCreate(&blacklistKEYS);
+	TrieCreate(&blacklistVALUES);
 
 	// Populate static blacklists (if requested)
 	if (staticFileBlacklist) {
-		printf("  > Loading static file blacklist: %ws\n", lpszFileBlacklist);
-		populateStaticBlacklist(lpszFileBlacklist, blacklistFILES);
+		printf(">>> Loading static file blacklist: %ws\n", lpszFileBlacklist);
+		populateStaticBlacklist(lpszFileBlacklist, blacklistDIRS);
 	}
 	if (staticRegistryBlacklist) {
-		printf("  > Loading static Registry blacklist: %ws\n", lpszRegistryBlacklist);
-		populateStaticBlacklist(lpszRegistryBlacklist, blacklistREGISTRY);
+		printf(">>> Loading static Registry blacklist: %ws\n", lpszRegistryBlacklist);
+		populateStaticBlacklist(lpszRegistryBlacklist, blacklistKEYS);
 	}
 
-	//TriePrint(blacklistFILES);
-	//exit(1);
-
+	// If we are: 1) hashing; 2) dynamic blacklist; or 3) static blacklisting
+	// Make a blacklist of known content
 	if (dwBlacklist == 1)
 	{
 		printf(">>> Generating dynamic blacklist...\n");
