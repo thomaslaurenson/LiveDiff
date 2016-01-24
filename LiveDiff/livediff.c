@@ -81,10 +81,8 @@ int wmain(DWORD argc, TCHAR *argv[])
 	lpszCommandline = MYALLOC0(100 * sizeof(TCHAR));
 
 	// Variables for static blacklists
-	staticFileBlacklist = FALSE;
-	staticRegistryBlacklist = FALSE;
-	lpszFileBlacklist = MYALLOC0(MAX_PATH * sizeof(TCHAR));
-	lpszRegistryBlacklist = MYALLOC0(MAX_PATH * sizeof(TCHAR));
+	staticBlacklist = FALSE;
+	lpszStaticBlacklist = MYALLOC0(MAX_PATH * sizeof(TCHAR));
 
 	// Default precision level
 	dwPrecisionLevel = 2;
@@ -113,12 +111,11 @@ int wmain(DWORD argc, TCHAR *argv[])
 			printf("             --load            Load one, or two snapshot files\n\n");
 			printf("    Options: -s Save snapshot files [default FALSE]\n");
 			printf("             -b Use dynamic blacklists [default FALSE]\n");
-			printf("             -f Specify a static file system directory blacklist\n");
-			printf("             -r Specify a static Registry key blacklist\n");
+			printf("             -f Specify a static blacklist\n");
 			printf("             -p Specify a precision level [default 1]\n");
-			printf("                  1 = new/deleted entries\n"); 
-			printf("                  2 = new/deleted/modified entries\n");
-			printf("                  3 = new/deleted/modified/changed entries;\n");
+			printf("                  -p 1 = new/deleted entries\n"); 
+			printf("                  -p 2 = new/deleted/modified entries\n");
+			printf("                  -p 3 = new/deleted/modified/changed entries;\n");
 			printf("             -c Select hash algorithm [default NONE]\n");
 			printf("                  -c md5, -c sha1, -c md5,sha1\n\n");
 			printf("   Examples: LiveDiff.exe -c sha1 -b -p 2\n");
@@ -192,32 +189,18 @@ int wmain(DWORD argc, TCHAR *argv[])
 			}
 			// Determine if we have a static file blacklist
 			if (_tcscmp(argv[i], _T("-f")) == 0) {
-				staticFileBlacklist = TRUE;
-				lpszFileBlacklist = argv[i + 1]; // COPY OVER PROPERLY
+				staticBlacklist = TRUE;
+				lpszStaticBlacklist = argv[i + 1]; // COPY OVER PROPERLY
 				WIN32_FIND_DATA FindFileData;
-				HANDLE handle = FindFirstFile(lpszFileBlacklist, &FindFileData);
+				HANDLE handle = FindFirstFile(lpszStaticBlacklist, &FindFileData);
 				// Check the file exists
 				if (handle == INVALID_HANDLE_VALUE) {
-					printf(">>> ERROR: Invalid static file blacklist. Exiting.\n");
+					printf(">>> ERROR: Invalid static blacklist file. Exiting.\n");
 					exit(1);
 				}
-				//dwBlacklist = 1;
 				performStaticBlacklisting = TRUE;
 			}
-			// Determine if we have a static Registry blacklist
-			if (_tcscmp(argv[i], _T("-r")) == 0) {
-				staticRegistryBlacklist = TRUE;
-				lpszRegistryBlacklist = argv[i + 1]; // COPY OVER PROPERLY
-				WIN32_FIND_DATA FindFileData;
-				HANDLE handle = FindFirstFile(lpszRegistryBlacklist, &FindFileData);
-				// Check the file exists
-				if (handle == INVALID_HANDLE_VALUE) {
-					printf(">>> ERROR: Invalid static Registry blacklist. Exiting.\n");
-					exit(1);
-				}
-				//dwBlacklist = 1;
-				performStaticBlacklisting = TRUE;
-			}
+			// Determine if we have a specified precision level
 			if (_tcscmp(argv[i], _T("-p")) == 0) 
 			{
 				if (argc <= i + 1) {
@@ -249,8 +232,6 @@ int wmain(DWORD argc, TCHAR *argv[])
 			}
 		}
 	}
-
-	
 
 	// From here, call the appropriate function for mode of operation selected by user
 	if (modeOfOperation == TEXT("PROFILE"))
@@ -301,14 +282,10 @@ BOOL prepareBlacklisting()
 	TrieCreate(&blacklistKEYS);
 	TrieCreate(&blacklistVALUES);
 
-	// Populate static blacklists (if requested)
-	if (staticFileBlacklist) {
-		printf(" >> Loading static file blacklist: %ws\n", lpszFileBlacklist);
-		populateStaticBlacklist(lpszFileBlacklist, blacklistDIRS);
-	}
-	if (staticRegistryBlacklist) {
-		printf(" >> Loading static Registry blacklist: %ws\n", lpszRegistryBlacklist);
-		populateStaticBlacklist(lpszRegistryBlacklist, blacklistKEYS);
+	if (staticBlacklist) 
+	{
+		printf(" >> Loading static blacklist: %ws\n", lpszStaticBlacklist);
+		populateStaticBlacklist(lpszStaticBlacklist);
 	}
 
 	// If we are: 1) hashing; 2) dynamic blacklist; or 3) static blacklisting

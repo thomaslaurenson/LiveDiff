@@ -381,16 +381,14 @@ void TriePrint(trieNode_t *root)
 //-----------------------------------------------------------------
 // Load the static blacklists into Trie (Prefix Tree)
 //-----------------------------------------------------------------
-BOOL populateStaticBlacklist(LPTSTR lpszFileName, trieNode_t * blacklist)
+BOOL populateStaticBlacklist(LPTSTR lpszFileName)
 {
 	wchar_t line[MAX_PATH];
 	FILE *hFile;
 	hFile = _wfopen(lpszFileName, L"rb, ccs=UTF-16LE");
 
-	//int i = 0;
 	while (fgetws(line, MAX_PATH, hFile))
 	{
-		//printf("B4  : %ws", line);
 		// Remove newline character
 		if (line[_tcslen(line) - 1] == (TCHAR)'\n') {
 			line[_tcslen(line) - 1] = (TCHAR)'\0';
@@ -404,10 +402,35 @@ BOOL populateStaticBlacklist(LPTSTR lpszFileName, trieNode_t * blacklist)
 		// If line does not start with a hash ('#'), add to blacklist
 		if (line[0] != (TCHAR)'#')
 		{
-			//printf("LINE: %ws\n", line);
-			TrieAdd(&blacklist, line);
+			if (line == NULL) {
+				continue;
+			}
+			
+			wchar_t * key = _tcstok(line, L"=");
+			wchar_t * path = _tcstok(NULL, L"=");
+
+			if (key == NULL || path == NULL) {
+				continue;
+			}
+
+			if (_tcscmp(key, _T("DIR")) == 0) {
+				TrieAdd(&blacklistDIRS, path);
+			}
+			if (_tcscmp(key, _T("FILE")) == 0) {
+				TrieAdd(&blacklistFILES, path);
+			}
+			if (_tcscmp(key, _T("KEY")) == 0) {
+				TrieAdd(&blacklistKEYS, path);
+			}
+			if (_tcscmp(key, _T("VALUE")) == 0) {
+				TrieAdd(&blacklistVALUES, path);
+			}
 		}
 	}
+
+	//LPTSTR string = TEXT("HKLM\\SYSTEM\\ControlSet002");
+	//BOOL found = TrieSearchPath(blacklistKEYS->children, string);
+	//printf("FOUND: %d", found);
 
 	// All done with loading blacklist, so close file handle and return
 	fclose(hFile);

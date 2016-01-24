@@ -281,10 +281,8 @@ BOOL performMD5Hashing;
 DWORD dwBlacklist;
 BOOL performDynamicBlacklisting;
 BOOL performStaticBlacklisting;
-BOOL staticFileBlacklist;
-BOOL staticRegistryBlacklist;
-LPTSTR lpszFileBlacklist;
-LPTSTR lpszRegistryBlacklist;
+BOOL staticBlacklist;
+LPTSTR lpszStaticBlacklist;
 trieNode_t *blacklistDIRS;
 trieNode_t *blacklistFILES;
 trieNode_t *blacklistKEYS;
@@ -336,7 +334,7 @@ void TrieAdd(trieNode_t **root, wchar_t *key);
 trieNode_t *TrieCreateNode(wchar_t key);
 trieNode_t* TrieSearch(trieNode_t *root, const wchar_t *key);
 BOOL TrieSearchPath(trieNode_t *root, const wchar_t *key);
-BOOL populateStaticBlacklist(LPTSTR lpszFileName, trieNode_t * blacklist);
+BOOL populateStaticBlacklist(LPTSTR lpszFileName);
 
 // output.c global functions
 VOID SetTextsToDefaultLanguage(VOID);
