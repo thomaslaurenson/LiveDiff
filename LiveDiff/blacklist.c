@@ -409,18 +409,6 @@ BOOL populateStaticBlacklist(LPTSTR lpszFileName, trieNode_t * blacklist)
 		}
 	}
 
-	//LPTSTR lpszFullPath = TEXT("C:\\Program Files\\");
-	//BOOL found;
-	//found = TrieSearchPath(blacklistDIRS->children, lpszFullPath);
-	//if (found)
-	//{
-	//	printf("FOUND");
-	//}
-	//else
-	//{
-	//	printf("NOTFOUND");
-	//}
-
 	// All done with loading blacklist, so close file handle and return
 	fclose(hFile);
 	return TRUE;

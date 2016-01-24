@@ -81,10 +81,10 @@ int wmain(DWORD argc, TCHAR *argv[])
 	lpszCommandline = MYALLOC0(100 * sizeof(TCHAR));
 
 	// Variables for static blacklists
-	BOOL staticFileBlacklist = FALSE;
-	BOOL staticRegistryBlacklist = FALSE;
-	LPTSTR lpszFileBlacklist = MYALLOC0(MAX_PATH * sizeof(TCHAR));
-	LPTSTR lpszRegistryBlacklist = MYALLOC0(MAX_PATH * sizeof(TCHAR));
+	staticFileBlacklist = FALSE;
+	staticRegistryBlacklist = FALSE;
+	lpszFileBlacklist = MYALLOC0(MAX_PATH * sizeof(TCHAR));
+	lpszRegistryBlacklist = MYALLOC0(MAX_PATH * sizeof(TCHAR));
 
 	// Default precision level
 	dwPrecisionLevel = 2;
@@ -113,19 +113,19 @@ int wmain(DWORD argc, TCHAR *argv[])
 			printf("             --load            Load one, or two snapshot files\n\n");
 			printf("    Options: -s Save snapshot files [default FALSE]\n");
 			printf("             -b Use dynamic blacklists [default FALSE]\n");
-			printf("             -f Specify a static file system blacklist\n");
-			printf("             -r Specify a static Registry blacklist\n");
+			printf("             -f Specify a static file system directory blacklist\n");
+			printf("             -r Specify a static Registry key blacklist\n");
 			printf("             -p Specify a precision level [default 1]\n");
 			printf("                  1 = new/deleted entries\n"); 
 			printf("                  2 = new/deleted/modified entries\n");
 			printf("                  3 = new/deleted/modified/changed entries;\n");
 			printf("             -c Select hash algorithm [default NONE]\n");
 			printf("                  -c md5, -c sha1, -c md5,sha1\n\n");
-			printf("   Examples: LiveDiff.exe --profile -b\n\n");
-			printf("             LiveDiff.exe -s\n");
+			printf("   Examples: LiveDiff.exe -c sha1 -b -p 2\n");
+			printf("             LiveDiff.exe -s -r blacklist-keys.txt -c md5\n");
 			printf("             LiveDiff.exe -c md5,sha1\n");
 			printf("             LiveDiff.exe -c md5 -p 1\n");
-			printf("             LiveDiff.exe -f file-blacklist.txt\n");
+			printf("             LiveDiff.exe -f blacklist-dirs.txt\n");
 			printf("             LiveDiff.exe --load 1.shot 2.shot\n\n");
 			return 0;
 		}
@@ -176,7 +176,7 @@ int wmain(DWORD argc, TCHAR *argv[])
 					performSHA1Hashing = TRUE;
 					dwBlacklist = 1;
 				}
-                else if (_tcscmp(argv[i+1], _T("md5,sha1")) == 0) {
+                else if ((_tcscmp(argv[i+1], _T("md5,sha1")) == 0) || (_tcscmp(argv[i + 1], _T("sha1,md5")) == 0)) {
 			        performMD5Hashing = TRUE;
 			        performSHA1Hashing = TRUE;
 					dwBlacklist = 1;
@@ -186,6 +186,7 @@ int wmain(DWORD argc, TCHAR *argv[])
 					printf("  > Possible options: LiveDiff.exe -c md5\n");
 					printf("                      LiveDiff.exe -c sha1\n");
 					printf("                      LiveDiff.exe -c md5,sha1\n");
+					printf("                      LiveDiff.exe -c sha1,md5\n");
 					exit(1);
 				}
 			}
@@ -249,39 +250,7 @@ int wmain(DWORD argc, TCHAR *argv[])
 		}
 	}
 
-	// Initialize blacklists (always do this, until a better check is written)
-	TrieCreate(&blacklistDIRS);
-	TrieCreate(&blacklistFILES);
-	TrieCreate(&blacklistKEYS);
-	TrieCreate(&blacklistVALUES);
-
-	// Populate static blacklists (if requested)
-	if (staticFileBlacklist) {
-		printf(">>> Loading static file blacklist: %ws\n", lpszFileBlacklist);
-		populateStaticBlacklist(lpszFileBlacklist, blacklistDIRS);
-	}
-	if (staticRegistryBlacklist) {
-		printf(">>> Loading static Registry blacklist: %ws\n", lpszRegistryBlacklist);
-		populateStaticBlacklist(lpszRegistryBlacklist, blacklistKEYS);
-	}
-
-	// If we are: 1) hashing; 2) dynamic blacklist; or 3) static blacklisting
-	// Make a blacklist of known content
-	if (dwBlacklist == 1)
-	{
-		printf(">>> Generating dynamic blacklist...\n");
-		lpShot = &Shot1;
-		printf("  > Scanning Windows Registry...\n");
-		RegShot(lpShot);
-		printf("  > Scanning Windows File System...\n");
-		FileShot(lpShot);
-
-		// We are done here! Free the shot.
-		FreeShot(&Shot1);
-
-		// Set blacklisting status to '2'
-		dwBlacklist = 2;
-	}
+	
 
 	// From here, call the appropriate function for mode of operation selected by user
 	if (modeOfOperation == TEXT("PROFILE"))
@@ -320,6 +289,48 @@ int wmain(DWORD argc, TCHAR *argv[])
 	
 	// Done. So exit!
 	return 0;
+}
+
+BOOL prepareBlacklisting()
+{
+	printf("\n>>> PREPARING LIVEDIFF BLACKLISTING...\n");
+	
+	// Initialize blacklists (always do this, until a better check is written)
+	TrieCreate(&blacklistDIRS);
+	TrieCreate(&blacklistFILES);
+	TrieCreate(&blacklistKEYS);
+	TrieCreate(&blacklistVALUES);
+
+	// Populate static blacklists (if requested)
+	if (staticFileBlacklist) {
+		printf(" >> Loading static file blacklist: %ws\n", lpszFileBlacklist);
+		populateStaticBlacklist(lpszFileBlacklist, blacklistDIRS);
+	}
+	if (staticRegistryBlacklist) {
+		printf(" >> Loading static Registry blacklist: %ws\n", lpszRegistryBlacklist);
+		populateStaticBlacklist(lpszRegistryBlacklist, blacklistKEYS);
+	}
+
+	// If we are: 1) hashing; 2) dynamic blacklist; or 3) static blacklisting
+	// Make a blacklist of known content
+	if (dwBlacklist == 1)
+	{
+		printf(" >> Generating dynamic blacklist...\n");
+		lpShot = &Shot1;
+		printf("  > Scanning Windows Registry...\n");
+		RegShot(lpShot);
+		printf("  > Scanning Windows File System...\n");
+		FileShot(lpShot);
+
+		// We are done here! Free the shot.
+		FreeShot(&Shot1);
+
+		// Set blacklisting status to '2'
+		dwBlacklist = 2;
+	}
+
+	// All done.
+	return TRUE;
 }
 
 //-----------------------------------------------------------------
@@ -486,6 +497,8 @@ BOOL snapshotProfile()
 	// Open the APXML report and populate XML header
 	OpenAPXMLReport(lpszAPXMLFileName);
 	StartAPXML(lpszStartDate, lpszAppName, lpszAppVersion, lpszCommandline, lpszWindowsVersion);
+
+	prepareBlacklisting();
 
 	// LOOP SNAPSHOT PROCESS... until exited by user
 	size_t loopCount = 0;

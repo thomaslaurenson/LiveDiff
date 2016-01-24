@@ -281,8 +281,12 @@ BOOL performMD5Hashing;
 DWORD dwBlacklist;
 BOOL performDynamicBlacklisting;
 BOOL performStaticBlacklisting;
-trieNode_t *blacklistFILES;
+BOOL staticFileBlacklist;
+BOOL staticRegistryBlacklist;
+LPTSTR lpszFileBlacklist;
+LPTSTR lpszRegistryBlacklist;
 trieNode_t *blacklistDIRS;
+trieNode_t *blacklistFILES;
 trieNode_t *blacklistKEYS;
 trieNode_t *blacklistVALUES;
 

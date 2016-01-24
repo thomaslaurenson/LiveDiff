@@ -344,6 +344,9 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 			if (NULL != lpszmd5Hash) { // NULL check, mainly for saved file issue
 				xml_outa2s(hFile, TEXT("hashdigest"), TEXT("type='md5'"), lpszmd5Hash);
 			}
+			else {
+				xml_outa2s(hFile, TEXT("hashdigest"), TEXT("type='md5'"), TEXT(""));
+			}
 		}
 	}
 
@@ -354,6 +357,9 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 			lpszsha1Hash = lpCR->lpszSHA1;
 			if (NULL != lpszsha1Hash) { // NULL check, mainly for saved file issue
 				xml_outa2s(hFile, TEXT("hashdigest"), TEXT("type='sha1'"), lpszsha1Hash);
+			}
+			else {
+				xml_outa2s(hFile, TEXT("hashdigest"), TEXT("type='sha1'"), TEXT(""));
 			}
 		}
 	}
