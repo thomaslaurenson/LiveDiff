@@ -543,7 +543,6 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 {
 	LPFILECONTENT lpFC;
 	HANDLE hFile;
-	//wprintf(L"%s\n", lpszFullName);
 	// Full dir/file name is already given
 	// Extra local block to reduce stack usage due to recursive calls
 	{
@@ -630,7 +629,7 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 			if (NULL != lplpCaller) {
 				*lplpCaller = lpFatherFC;
 			}
-
+			          
 			// Increase dir/file count
 			if (ISFILE(FindData.dwFileAttributes)) {
 				lpShot->stCounts.cFiles++;
@@ -718,13 +717,32 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 					lpShot->stCounts.cFilesBlacklist++;
 					MYFREE(lpszFullPath);
 					FreeAllFileContents(lpFC);
-					continue;  // ignore this entry and continue with next brother value
+
+					// Increase value count for display purposes
+					lpShot->stCounts.cDirsBlacklist++;
+					
+					// Ignore this entry and continue with next brother value
+					continue;  
 				}
 				else
 				{
 					MYFREE(lpszFullPath);
 				}
 			}
+		}
+
+		// Check if the file system entry is a symbolic link
+		// If so, skip as it actually resides somewhere else on the file system!
+		if (ISSYM(FindData.dwFileAttributes)) {
+			if (ISFILE(FindData.dwFileAttributes)) {
+				lpShot->stCounts.cFilesBlacklist++;
+			}
+			else {
+				lpShot->stCounts.cDirsBlacklist++;
+			}
+
+
+			continue;
 		}
 
 		// Blacklisting implementation for files		
@@ -744,7 +762,8 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 				// Increase value count for display purposes
 				lpShot->stCounts.cFiles++;
 
-				//continue;  // ignore this entry and continue with next brother value
+				// Ignore this entry and continue with next brother value
+				//continue;  
 			}
 			else if (dwBlacklist == 2)
 			{
@@ -758,10 +777,14 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 				{
 					if (performDynamicBlacklisting)
 					{
-						lpShot->stCounts.cFilesBlacklist++;
 						MYFREE(lpszFullPath);
 						FreeAllFileContents(lpFC);
-						continue;  // ignore this entry and continue with next brother value
+
+						// Increase value count for display purposes
+						lpShot->stCounts.cFilesBlacklist++;
+
+						// Ignore this entry and continue with next brother value
+						continue;  
 					}
 					if (performSHA1Hashing || performMD5Hashing)
 					{
@@ -822,8 +845,11 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 		}
 
 		// Print file system shot status
-		if (dwBlacklist == 2 && performDynamicBlacklisting) {
-			printf("  > Dirs: %d  Files: %d  Blacklisted Files: %d\r", lpShot->stCounts.cDirs, lpShot->stCounts.cFiles, lpShot->stCounts.cFilesBlacklist);
+		if ((dwBlacklist == 2 && performDynamicBlacklisting) || (performStaticBlacklisting)) {
+			printf("  > Dirs: %d  Files: %d  Blacklisted Dirs: %d  Blacklisted Files: %d\r", lpShot->stCounts.cDirs, 
+				lpShot->stCounts.cFiles,
+				lpShot->stCounts.cDirsBlacklist,
+				lpShot->stCounts.cFilesBlacklist);
 		}
 		else {
 			printf("  > Dirs: %d  Files: %d\r", lpShot->stCounts.cDirs, lpShot->stCounts.cFiles);
@@ -860,7 +886,6 @@ VOID FileShot(LPSNAPSHOT lpShot)
 	lpszWindowsDirName = MYALLOC0(MAX_PATH * sizeof(TCHAR));
 	GetSystemWindowsDirectory(lpszWindowsDirName, MAX_PATH);  // length incl. NULL character
 	GetVolumePathName(lpszWindowsDirName, lpszExtDir, MAX_PATH);
-	//_tcscat(lpszExtDir, TEXT("testdata")); // Temporary test directory, to save scanning the entire file system
 	lpszExtDir[MAX_PATH] = (TCHAR)'\0';
 	// Set the length of the Windows directory
 	cchExtDir = _tcslen(lpszExtDir);
@@ -908,10 +933,17 @@ VOID FileShot(LPSNAPSHOT lpShot)
 	}
 
 	// Update total count of all items
-	lpShot->stCounts.cAll = lpShot->stCounts.cDirs
-		+ lpShot->stCounts.cFiles;
+	lpShot->stCounts.cAll = lpShot->stCounts.cDirs + lpShot->stCounts.cFiles;
 	// Print final file system shot count
-	printf("  > Dirs:  %d  Files: %d\n", lpShot->stCounts.cDirs, lpShot->stCounts.cFiles);
+	if ((dwBlacklist == 2 && performDynamicBlacklisting) || (performStaticBlacklisting)) {
+		printf("  > Dirs: %d  Files: %d  Blacklisted Dirs: %d  Blacklisted Files: %d\n", lpShot->stCounts.cDirs,
+			lpShot->stCounts.cFiles,
+			lpShot->stCounts.cDirsBlacklist,
+			lpShot->stCounts.cFilesBlacklist);
+	}
+	else {
+		printf("  > Dirs: %d  Files: %d\n", lpShot->stCounts.cDirs, lpShot->stCounts.cFiles);
+	}
 }
 
 // ----------------------------------------------------------------------

@@ -942,6 +942,9 @@ LPKEYCONTENT GetRegistrySnap(LPSNAPSHOT lpShot, HKEY hRegKey, LPTSTR lpszRegKeyN
 			{
 				MYFREE(lpszFullPath);
 				FreeAllKeyContents(lpKC);
+
+				lpShot->stCounts.cKeysBlacklist++;
+
 				return NULL;
 			}
 			MYFREE(lpszFullPath);
@@ -1115,8 +1118,11 @@ LPKEYCONTENT GetRegistrySnap(LPSNAPSHOT lpShot, HKEY hRegKey, LPTSTR lpszRegKeyN
 	}  // End of extra local block
 
 	// Print Registry shot status
-	if (dwBlacklist == 2 && performDynamicBlacklisting) {
-		printf("  > Keys: %d  Values: %d  Blacklisted Values: %d\r", lpShot->stCounts.cKeys, lpShot->stCounts.cValues, lpShot->stCounts.cValuesBlacklist);
+	if ((dwBlacklist == 2 && performDynamicBlacklisting) || (performStaticBlacklisting)) {
+		printf("  > Keys: %d  Values: %d  Blacklisted Keys: %d  Blacklisted Values: %d\r", lpShot->stCounts.cKeys, 
+			lpShot->stCounts.cValues, 
+			lpShot->stCounts.cKeysBlacklist,
+			lpShot->stCounts.cValuesBlacklist);
 	}
 	else {
 		printf("  > Keys: %d  Values: %d\r", lpShot->stCounts.cKeys, lpShot->stCounts.cValues);
@@ -1228,8 +1234,15 @@ VOID RegShot(LPSNAPSHOT lpShot)
 	GetRegistrySnap(lpShot, HKEY_USERS, lpszHKUShort, NULL, &lpShot->lpHKU);
 
 	// Print final Registry shot count
-	printf("  > Keys:  %d  Values: %d\n", lpShot->stCounts.cKeys, lpShot->stCounts.cValues);
-
+	if ((dwBlacklist == 2 && performDynamicBlacklisting) || (performStaticBlacklisting)) {
+		printf("  > Keys: %d  Values: %d  Blacklisted Keys: %d  Blacklisted Values: %d\n", lpShot->stCounts.cKeys,
+			lpShot->stCounts.cValues,
+			lpShot->stCounts.cKeysBlacklist,
+			lpShot->stCounts.cValuesBlacklist);
+	}
+	else {
+		printf("  > Keys: %d  Values: %d\n", lpShot->stCounts.cKeys, lpShot->stCounts.cValues);
+	}
 	// Get total count of all items
 	lpShot->stCounts.cAll = lpShot->stCounts.cKeys + lpShot->stCounts.cValues;
 

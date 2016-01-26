@@ -64,6 +64,7 @@ extern HANDLE hHeap;
 // ----------------------------------------------------------------------
 #define ISDIR(x)  ( (x&FILE_ATTRIBUTE_DIRECTORY) != 0 )
 #define ISFILE(x) ( (x&FILE_ATTRIBUTE_DIRECTORY) == 0 )
+#define ISSYM(x)  ( (x&FILE_ATTRIBUTE_REPARSE_POINT) != 0 )
 
 // ----------------------------------------------------------------------
 // Definitions for matching status, including modification type
@@ -110,7 +111,9 @@ struct _COUNTS
 	DWORD cValues;			// Count for Registry values
 	DWORD cDirs;			// Count for file system directories
 	DWORD cFiles;			// Count for file system files
-	DWORD cFilesBlacklist;	// Count for blacklisted file system files
+	DWORD cDirsBlacklist;	// Count for blacklisted dirs
+	DWORD cFilesBlacklist;	// Count for blacklisted files
+	DWORD cKeysBlacklist;	// Count for blacklisted Registry values
 	DWORD cValuesBlacklist;	// Count for blacklisted Registry values
 };
 typedef struct _COUNTS COUNTS, FAR *LPCOUNTS;
