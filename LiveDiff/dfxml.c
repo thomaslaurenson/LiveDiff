@@ -83,6 +83,19 @@ VOID xml_tagout(HANDLE hFile, LPTSTR tag, LPTSTR attribute)
 }
 
 //-----------------------------------------------------------------
+// Write out a byte_run element with a hash value
+// <byte_run file_offset='45056' len='4096'><hashdigest type='md5'>094FA8892A82C5C8CF742A033C7C7A3E</hashdigest></byte_run>
+//-----------------------------------------------------------------
+VOID xml_tagout_nnl(HANDLE hFile, LPTSTR tag)
+{
+	DWORD maxLen = (DWORD)_tcslen(tag) + 2; // 2 for new line and null
+	LPTSTR line = MYALLOC0(maxLen * sizeof(TCHAR));
+	_sntprintf(line, maxLen, TEXT("%s\n"), tag);
+	WriteFile(hFile, line, (DWORD)(_tcslen(line) * sizeof(TCHAR)), &NBW, NULL);
+	MYFREE(line);
+}
+
+//-----------------------------------------------------------------
 // Write out a closing tag (e.g. "</fileobject>)
 //-----------------------------------------------------------------
 VOID xml_ctagout(HANDLE hFile, LPTSTR tag)
@@ -348,6 +361,67 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 				xml_outa2s(hFile, TEXT("hashdigest"), TEXT("type='md5'"), TEXT(""));
 			}
 		}
+	}
+
+	if (performMD5BlockHashing)
+	{
+		xml_tagout(hFile, TEXT("byte_runs"), TEXT(""));
+		for (LPMD5BLOCK aMD5BLOCK = lpCR->lpMD5Block; NULL != aMD5BLOCK; aMD5BLOCK = aMD5BLOCK->lpNextMD5Block)
+		{
+			// <byte_run file_offset='45056' len='4096'>
+			WCHAR lpszOffset[10];
+			swprintf_s(lpszOffset, 10, L"%d", aMD5BLOCK->dwOffset);
+			WCHAR lpszLength[10];
+			swprintf_s(lpszLength, 10, L"%d", aMD5BLOCK->dwLength);
+
+			LPTSTR lpszByteRun = TEXT("byte_run");
+			LPTSTR lpszOffsetAttr = TEXT("file_offset");
+			LPTSTR lpszLengthAttr = TEXT("len");
+			DWORD chByteRunStart = (
+				(DWORD)_tcslen(lpszByteRun) +
+				(DWORD)_tcslen(lpszOffsetAttr) +
+				(DWORD)_tcslen(lpszOffset) +
+				(DWORD)_tcslen(lpszLengthAttr) +
+				(DWORD)_tcslen(lpszLength) +
+				10 + 1); // 10 is for formatting, 1 for /0
+			LPTSTR lpszByteRunStart = MYALLOC0(chByteRunStart * sizeof(TCHAR));
+			_sntprintf(lpszByteRunStart, chByteRunStart, TEXT("<%s %s='%s' %s='%s'>"), lpszByteRun, lpszOffsetAttr, lpszOffset, lpszLengthAttr, lpszLength);
+
+			//printf("lpszByteRunStart: %ws\n", lpszByteRunStart);
+			//printf("chByteRunStart: %d\n", chByteRunStart);
+
+			// <hashdigest type='md5'>094FA8892A82C5C8CF742A033C7C7A3E</hashdigest>
+			LPTSTR lpszHashDigestStart = TEXT("hashdigest");
+			LPTSTR lpszHashDigestAttr = TEXT("type='md5'");
+			LPTSTR lpszHashDigestEnd = TEXT("hashdigest");
+
+			DWORD chHashDigest = (
+				(DWORD)_tcslen(lpszHashDigestStart) +
+				(DWORD)_tcslen(lpszHashDigestAttr) +
+				(DWORD)_tcslen(aMD5BLOCK->lpszMD5HashValue) +
+				(DWORD)_tcslen(lpszHashDigestEnd) +
+				5 + 1); // 10 is for formatting, 1 for /0
+			LPTSTR lpszHashDigest = MYALLOC0(chHashDigest * sizeof(TCHAR));
+			_sntprintf(lpszHashDigest, chHashDigest, TEXT("<%s %s>%s<%s>"), lpszHashDigestStart, lpszHashDigestAttr, aMD5BLOCK->lpszMD5HashValue, lpszHashDigestEnd);
+
+			//printf("lpszHashDigest: %ws\n", lpszHashDigest);
+			//printf("chHashDigest: %d\n", chHashDigest);
+
+			LPTSTR lpszByteRunEnd = TEXT("</byte_run>");
+
+			DWORD chByteRun = (
+				(DWORD)_tcslen(lpszByteRunStart) +
+				(DWORD)_tcslen(lpszHashDigest) +
+				(DWORD)_tcslen(lpszByteRunEnd) +
+				1); // 10 is for formatting, 1 for /0
+			LPTSTR lpszByteRunString = MYALLOC0(chByteRun * sizeof(TCHAR));
+			_sntprintf(lpszByteRunString, chByteRun, TEXT("%s%s%s"), lpszByteRunStart, lpszHashDigest, lpszByteRunEnd);
+
+			//printf("lpszByteRunString: %ws\n", lpszByteRunString);
+			xml_tagout_nnl(hFile, lpszByteRunString);
+		}
+
+		xml_ctagout(hFile, TEXT("byte_runs"));
 	}
 
 	// If a file fetch SHA1 hash

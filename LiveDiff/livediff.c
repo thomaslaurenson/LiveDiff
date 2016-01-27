@@ -70,6 +70,7 @@ int wmain(DWORD argc, TCHAR *argv[])
 	saveSnapShots = FALSE;				// Are we saving snapshots after data collection
 	performSHA1Hashing = FALSE;			// Are we performing SHA1 hashing
 	performMD5Hashing = FALSE;			// Are we performing MD5 hashing
+	performMD5BlockHashing = FALSE;		// Are we performing MD5 BLOCK hashing
 	performDynamicBlacklisting = FALSE; // Are we performing dynamic blacklisting
 	performStaticBlacklisting = FALSE;	// Are we performing static blacklisting
 
@@ -93,6 +94,13 @@ int wmain(DWORD argc, TCHAR *argv[])
 	// LOAD = load one or two snapshots, then compare (triggered with "--load" argument)
 	LPTSTR modeOfOperation = TEXT("PROFILE");
 
+	// SMALL BLOCK OF CODE TO CHECK NEW MD5 BLOCK HASHING
+	//LPTSTR lpszFileNamey = TEXT("CellXML-Registry-1.2.0.exe");
+	//LPTSTR lpszFileNamey = TEXT("AD.exe"); 
+	//printf("NAME: %ws\n", lpszFileNamey);
+	//LPMD5BLOCK block = CalculateMD5Blocks(lpszFileNamey);
+	//exit(1);
+
 	//-----------------------------------------------------------------
 	// If an argument is given (e.g., LiveDiff.exe -s, LiveDiff.exe -h) parse arguments
 	//-----------------------------------------------------------------
@@ -109,15 +117,15 @@ int wmain(DWORD argc, TCHAR *argv[])
 			printf("             --profile         Profile mode, generate APXML profile\n");
 			printf("             --profile-reboot  Profile mode after system reboot\n");
 			printf("             --load            Load one, or two snapshot files\n\n");
-			printf("    Options: -s Save snapshot files [default FALSE]\n");
-			printf("             -b Use dynamic blacklists [default FALSE]\n");
+			printf("    Options: -d Use dynamic blacklists [default FALSE]\n");
 			printf("             -f Specify a static blacklist\n");
 			printf("             -p Specify a precision level [default 1]\n");
 			printf("                  -p 1 = new/deleted entries\n"); 
 			printf("                  -p 2 = new/deleted/modified entries\n");
 			printf("                  -p 3 = new/deleted/modified/changed entries;\n");
 			printf("             -c Select hash algorithm [default NONE]\n");
-			printf("                  -c md5, -c sha1, -c md5,sha1\n\n");
+			printf("                  -c md5, -c sha1, -c md5,sha1\n");
+			printf("             -b Perform MD5 bloack hashing [default NONE]\n\n");
 			printf("   Examples: LiveDiff.exe -c sha1 -b -p 2\n");
 			printf("             LiveDiff.exe -s -r blacklist-keys.txt -c md5\n");
 			printf("             LiveDiff.exe -c md5,sha1\n");
@@ -153,7 +161,7 @@ int wmain(DWORD argc, TCHAR *argv[])
 				saveSnapShots = TRUE;
 			}
 			// Detemine if we are performing dynamic blacklisting
-			if (_tcscmp(argv[i], _T("-b")) == 0) {
+			if (_tcscmp(argv[i], _T("-d")) == 0) {
 				dwBlacklist = 1;
 				performDynamicBlacklisting = TRUE;
 			}
@@ -186,6 +194,11 @@ int wmain(DWORD argc, TCHAR *argv[])
 					printf("                      LiveDiff.exe -c sha1,md5\n");
 					exit(1);
 				}
+			}
+			// Detemine if we are performing dynamic blacklisting
+			if (_tcscmp(argv[i], _T("-b")) == 0) {
+				performMD5BlockHashing = TRUE;
+				dwBlacklist = 1;
 			}
 			// Determine if we have a static file blacklist
 			if (_tcscmp(argv[i], _T("-f")) == 0) {

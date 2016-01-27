@@ -170,25 +170,30 @@ LPTSTR CalculateSHA1(LPTSTR FileName)
 }
 
 //-----------------------------------------------------------------
-// Block hashing: Calculate the SHA1 hash value for a 4096 block
+// Block hashing: Calculate the MD5 hash value for a 4096 block
 //----------------------------------------------------------------- 
-LPTSTR sha1Block(BYTE rgbFile[BLOCKSIZE], DWORD dwFileOffset, DWORD dwRunLength)
+LPMD5BLOCK md5Block(BYTE rgbFile[BLOCKSIZE], DWORD dwFileOffset, DWORD dwRunLength)
 {
 	HCRYPTPROV hProv = 0;
 	HCRYPTHASH hHash = 0;
-	BYTE rgbHash[SHA1LEN];
+	BYTE rgbHash[MD5LEN];
 	LPTSTR sha1HashString;
-	DWORD cbHash = SHA1LEN;
+	DWORD cbHash = MD5LEN;
+
+	LPMD5BLOCK MD5Block = NULL;
+	MD5Block = MYALLOC0(sizeof(MD5BLOCK));
+	MD5Block->dwOffset = dwFileOffset;
+	MD5Block->dwLength = dwRunLength;
 
 	// Get handle to the crypto provider
 	if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
-		//CloseHandle(hashFile);
-		return TEXT("HASHING_FAILED CryptAcquireContext\0");
+		printf(">>> ERROR: md5Block: CryptAcquireContext");
+		return MD5Block;
 	}
 
-	if (!CryptCreateHash(hProv, CALG_SHA1, 0, 0, &hHash)) {
-		//CloseHandle(hashFile);
-		return TEXT("HASHING_FAILED CryptCreateHash\0");
+	if (!CryptCreateHash(hProv, CALG_MD5, 0, 0, &hHash)) {
+		printf(">>> ERROR: md5Block: CryptCreateHash"); 
+		return MD5Block;
 	}
 
 	DWORD cbRead = dwRunLength;
@@ -196,25 +201,28 @@ LPTSTR sha1Block(BYTE rgbFile[BLOCKSIZE], DWORD dwFileOffset, DWORD dwRunLength)
 	if (!CryptHashData(hHash, rgbFile, cbRead, 0)) {
 		CryptReleaseContext(hProv, 0);
 		CryptDestroyHash(hHash);
-		return TEXT("HASHING_FAILED CryptHashData\0");
+		printf(">>> ERROR: md5Block: CryptHashData"); 
+		return MD5Block;
 	}
 
-	sha1HashString = MYALLOC0((SHA1LEN * 2 + 1) * sizeof(TCHAR));
+	sha1HashString = MYALLOC0((CALG_MD5 * 2 + 1) * sizeof(TCHAR));
 	_tcscpy_s(sha1HashString, 1, TEXT(""));
 	if (CryptGetHashParam(hHash, HP_HASHVAL, rgbHash, &cbHash, 0)) {
 		for (DWORD i = 0; i < cbHash; i++) {
 			_sntprintf(sha1HashString + (i * 2), 2, TEXT("%02X\0"), rgbHash[i]);
 		}
 	}
-	DWORD dwEndOffset = dwFileOffset + dwRunLength - 1;
-	//wprintf(L"%s offset %d-%d (%d)\n", sha1HashString, dwFileOffset, dwEndOffset, dwRunLength);
-	return sha1HashString;
+
+	MD5Block->lpszMD5HashValue = sha1HashString;
+	MD5Block->lpNextMD5Block = NULL;
+
+	return MD5Block;
 }
 
 //-----------------------------------------------------------------
 // Block hashing: From a file, calculate the SHA1 hash value in 4096 blocks
 //----------------------------------------------------------------- 
-LPTSTR CalculateSHA1Blocks(LPTSTR FileName)
+LPMD5BLOCK CalculateMD5Blocks(LPTSTR FileName)
 {
 	HANDLE hashFile = NULL;
 	BOOL bResult = FALSE;
@@ -222,6 +230,8 @@ LPTSTR CalculateSHA1Blocks(LPTSTR FileName)
 	BYTE rgbFile[BLOCKSIZE];
 	CHAR rgbDigits[] = "0123456789abcdef";
 	DWORD dwFileOffset = 0;
+
+	LPMD5BLOCK firstMD5Block = MYALLOC0(sizeof(LPMD5BLOCK));
 
 	// Open the file to perform hash
 	hashFile = CreateFile(FileName,
@@ -232,7 +242,7 @@ LPTSTR CalculateSHA1Blocks(LPTSTR FileName)
 		FILE_FLAG_SEQUENTIAL_SCAN,
 		NULL);
 	if (INVALID_HANDLE_VALUE == hashFile) {
-		return TEXT("ERROR_OPENING_FILE\0");
+		printf(">>> ERROR: CalculateMD5Blocks: ERROR_OPENING_FILE");
 	}
 
 	// Read input file in 4096 byte blocks, and SHA1 hash each block
@@ -241,14 +251,45 @@ LPTSTR CalculateSHA1Blocks(LPTSTR FileName)
 		if (0 == cbRead) {
 			break;
 		}
-		// SHA1 hash the read block, also pass the file offset and number of bytes read
-		sha1Block(rgbFile, dwFileOffset, cbRead);
+
+		LPMD5BLOCK MD5Block = md5Block(rgbFile, dwFileOffset, cbRead);
+
+		if (MD5Block == NULL) {
+			printf(">>> ERROR: CalculateMD5Blocks: Error creating MD5BLOCK");
+			break;
+		}
+
+		if (MD5Block->dwOffset == 0) {
+			firstMD5Block = MD5Block;
+		}
+		else {
+			pushBlock(firstMD5Block, MD5Block);
+		}
+
 		// Increase the file offset based on number of bytes read
 		dwFileOffset += cbRead;
 	}
 
-	//return sha1HashString;
-	return TEXT("DONE");
+	// Close the file handle
+	CloseHandle(hashFile);
+
+	// Return the first block (linked to all other blocks)
+	return firstMD5Block;
+}
+
+//-----------------------------------------------------------------
+// Block hashing: Append a MD5BLOCK to the previous MD5BLOCK
+//----------------------------------------------------------------- 
+VOID pushBlock(LPMD5BLOCK firstMD5Block, LPMD5BLOCK MD5Block)
+{
+	LPMD5BLOCK current = firstMD5Block;
+	while (current->lpNextMD5Block != NULL) {
+		current = current->lpNextMD5Block;
+	}
+
+	current->lpNextMD5Block = MYALLOC0(sizeof(MD5BLOCK));
+	current->lpNextMD5Block = MD5Block;
+	current->lpNextMD5Block->lpNextMD5Block = NULL;
 }
 
 //-------------------------------------------------------------
@@ -840,6 +881,12 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 				    lpFC->cchMD5 = 32;
 				    lpFC->lpszMD5 = MYALLOC((lpFC->cchMD5 + 1) * sizeof(TCHAR));
 				    _tcscpy(lpFC->lpszMD5, CalculateMD5(GetWholeFileName(lpFC, 4)));
+				}
+				if (performMD5BlockHashing)
+				{
+					LPMD5BLOCK theMD5Block = CalculateMD5Blocks(GetWholeFileName(lpFC, 4));
+					lpFC->lpMD5Block = MYALLOC0(sizeof(MD5BLOCK));
+					lpFC->lpMD5Block = theMD5Block;
 				}
 			}
 		}

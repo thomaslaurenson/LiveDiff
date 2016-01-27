@@ -150,6 +150,30 @@ struct _KEYCONTENT
 };
 typedef struct _KEYCONTENT KEYCONTENT, FAR *LPKEYCONTENT;
 
+
+//-------------------------------------------------------------
+// MD5 Block Structure
+//-------------------------------------------------------------
+struct _MD5BLOCK
+{
+	LPTSTR lpszMD5HashValue;
+	DWORD dwOffset;
+	DWORD dwLength;
+	struct _MD5BLOCK *lpNextMD5Block;
+};
+typedef struct _MD5BLOCK MD5BLOCK, *LPMD5BLOCK;
+
+VOID pushBlock(LPMD5BLOCK fatherMD5Block, LPMD5BLOCK MD5Block);
+LPMD5BLOCK CalculateMD5Blocks(LPTSTR FileName);
+
+//typedef struct trieNode {
+//	wchar_t key;
+//	struct trieNode *next;
+//	struct trieNode *prev;
+//	struct trieNode *children;
+//	struct trieNode *parent;
+//} trieNode_t;
+
 // ----------------------------------------------------------------------
 // Structure used for file system content (files and directories)
 // ----------------------------------------------------------------------
@@ -172,6 +196,8 @@ struct _FILECONTENT
 	struct _FILECONTENT FAR *lpBrotherFC;   // Pointer to file's brother
 	struct _FILECONTENT FAR *lpFatherFC;    // Pointer to file's father
 	DWORD fFileMatch;                       // Flags used when comparing
+	//struct _LPMD5BLOCK FAR *lpMD5Block;				// Linked list of MD5 block hashes
+	LPMD5BLOCK lpMD5Block;
 };
 typedef struct _FILECONTENT FILECONTENT, FAR *LPFILECONTENT;
 
@@ -278,7 +304,9 @@ DWORD dwPrecisionLevel;
 									
 // Global file hashing variable
 BOOL performSHA1Hashing;
+BOOL performSHA1BlockHashing;
 BOOL performMD5Hashing;
+BOOL performMD5BlockHashing;
 
 // Global blacklisting variables
 DWORD dwBlacklist;
