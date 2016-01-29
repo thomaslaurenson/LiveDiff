@@ -156,23 +156,15 @@ typedef struct _KEYCONTENT KEYCONTENT, FAR *LPKEYCONTENT;
 //-------------------------------------------------------------
 struct _MD5BLOCK
 {
-	LPTSTR lpszMD5HashValue;
-	DWORD dwOffset;
-	DWORD dwLength;
+	BYTE bMD5Hash[16];
+	//DWORD dwOffset;
+	//DWORD dwLength;
 	struct _MD5BLOCK *lpNextMD5Block;
 };
 typedef struct _MD5BLOCK MD5BLOCK, *LPMD5BLOCK;
 
 VOID pushBlock(LPMD5BLOCK fatherMD5Block, LPMD5BLOCK MD5Block);
 LPMD5BLOCK CalculateMD5Blocks(LPTSTR FileName);
-
-//typedef struct trieNode {
-//	wchar_t key;
-//	struct trieNode *next;
-//	struct trieNode *prev;
-//	struct trieNode *children;
-//	struct trieNode *parent;
-//} trieNode_t;
 
 // ----------------------------------------------------------------------
 // Structure used for file system content (files and directories)
@@ -307,6 +299,7 @@ BOOL performSHA1Hashing;
 BOOL performSHA1BlockHashing;
 BOOL performMD5Hashing;
 BOOL performMD5BlockHashing;
+DWORD dwHashBlockSize;
 
 // Global blacklisting variables
 DWORD dwBlacklist;

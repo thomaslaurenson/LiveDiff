@@ -32,12 +32,6 @@ VOID ParseLPCompResultsFile(DWORD nActionType, LPCOMPRESULT lpStartCR)
 	// Loop through each item in CompareResults structure
 	for (lpCR = lpStartCR; NULL != lpCR; lpCR = lpCR->lpNextCR) 
 	{
-		// THE OLD OUTPUT METHOD
-		//if ((nActionType == DIRADD) || (nActionType == DIRMODI) || (nActionType == FILEADD) || (nActionType == FILEMODI)) {
-		//	if (NULL != lpCR->lpContentNew) {
-		//		PopulateFileObject(hFileAPXML, nActionType, lpCR->lpContentNew);
-		//	}
-		//}
 		if (dwPrecisionLevel >= 1) {
 			// Precision level 1: NEW files, directories
 			if ((nActionType == DIRADD) || (nActionType == FILEADD) && (NULL != lpCR->lpContentNew)) {
@@ -75,12 +69,6 @@ VOID ParseLPCompResultsRegistry(DWORD nActionType, LPCOMPRESULT lpStartCR)
 	// Loop through each item in CompareResults structure
 	for (lpCR = lpStartCR; NULL != lpCR; lpCR = lpCR->lpNextCR) 
 	{
-		// THE OLD OUTPUT METHOD
-		//if ((nActionType == KEYADD) || (nActionType == VALADD) || (nActionType == VALMODI)) {
-		//	if (NULL != lpCR->lpContentNew) {
-		//		PopulateCellObject(hFileAPXML, nActionType, lpCR->lpContentNew);
-		//	}
-		//}
 		if (dwPrecisionLevel >= 1) {
 			// Precision level 1: NEW keys, values
 			if ((nActionType == KEYADD) || (nActionType == VALADD) && (NULL != lpCR->lpContentNew)) {
@@ -143,7 +131,7 @@ BOOL OpenAPXMLReport(LPTSTR lpszReportBaseName)
 		NULL);
 
 	// All done. Free stuff. Return True.
-	//MYFREE(lpszAPXMLDestFileName);
+	MYFREE(lpszOutputPath);
 	return TRUE;
 }
 

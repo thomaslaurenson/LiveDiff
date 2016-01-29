@@ -23,6 +23,9 @@ along with LiveDiff.  If not, see <http://www.gnu.org/licenses/>.
 HANDLE hFileAPXML; // Application Profile file handle
 DWORD NBW; // Number of Bytes Written
 
+#define SHA1LEN		20
+#define MD5LEN		16
+
 //-----------------------------------------------------------------
 // DFXML Functions to make life easier
 //-----------------------------------------------------------------
@@ -365,18 +368,24 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 
 	if (performMD5BlockHashing)
 	{
+		DWORD dwOffset = 0;
+		DWORD dwLength = 512;
 		xml_tagout(hFile, TEXT("byte_runs"), TEXT(""));
 		for (LPMD5BLOCK aMD5BLOCK = lpCR->lpMD5Block; NULL != aMD5BLOCK; aMD5BLOCK = aMD5BLOCK->lpNextMD5Block)
 		{
 			// <byte_run file_offset='45056' len='4096'>
 			WCHAR lpszOffset[10];
-			swprintf_s(lpszOffset, 10, L"%d", aMD5BLOCK->dwOffset);
+			swprintf_s(lpszOffset, 10, L"%d", dwOffset);
 			WCHAR lpszLength[10];
-			swprintf_s(lpszLength, 10, L"%d", aMD5BLOCK->dwLength);
+			swprintf_s(lpszLength, 10, L"%d", dwLength);
 
-			LPTSTR lpszByteRun = TEXT("byte_run");
-			LPTSTR lpszOffsetAttr = TEXT("file_offset");
-			LPTSTR lpszLengthAttr = TEXT("len");
+			LPTSTR lpszByteRun = MYALLOC0(9 * sizeof(TCHAR));
+			_tcscpy_s(lpszByteRun, 9, TEXT("byte_run"));
+			LPTSTR lpszOffsetAttr = MYALLOC0(12 * sizeof(TCHAR));
+			_tcscpy_s(lpszOffsetAttr, 12, TEXT("file_offset"));
+			LPTSTR lpszLengthAttr = MYALLOC0(4 * sizeof(TCHAR));
+			_tcscpy_s(lpszLengthAttr, 4, TEXT("len"));
+
 			DWORD chByteRunStart = (
 				(DWORD)_tcslen(lpszByteRun) +
 				(DWORD)_tcslen(lpszOffsetAttr) +
@@ -387,27 +396,43 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 			LPTSTR lpszByteRunStart = MYALLOC0(chByteRunStart * sizeof(TCHAR));
 			_sntprintf(lpszByteRunStart, chByteRunStart, TEXT("<%s %s='%s' %s='%s'>"), lpszByteRun, lpszOffsetAttr, lpszOffset, lpszLengthAttr, lpszLength);
 
-			//printf("lpszByteRunStart: %ws\n", lpszByteRunStart);
-			//printf("chByteRunStart: %d\n", chByteRunStart);
+			// Free some memory
+			if (NULL != lpszByteRun) { MYFREE(lpszByteRun); }
+			if (NULL != lpszOffsetAttr) { MYFREE(lpszOffsetAttr); }
+			if (NULL != lpszLengthAttr) { MYFREE(lpszLengthAttr); }
+
+			// Convert MD5Hash (BYTE) to lpszMD5HashValue (LPTSTR)
+			LPTSTR sha1HashString = MYALLOC0((CALG_MD5 * 2 + 1) * sizeof(TCHAR));
+			//_tcscpy_s(sha1HashString, 1, TEXT(""));
+			for (DWORD i = 0; i < 16; i++) {
+				_sntprintf(sha1HashString + (i * 2), 2, TEXT("%02x\0"), aMD5BLOCK->bMD5Hash[i]);
+			}
 
 			// <hashdigest type='md5'>094FA8892A82C5C8CF742A033C7C7A3E</hashdigest>
-			LPTSTR lpszHashDigestStart = TEXT("hashdigest");
-			LPTSTR lpszHashDigestAttr = TEXT("type='md5'");
-			LPTSTR lpszHashDigestEnd = TEXT("hashdigest");
+			LPTSTR lpszHashDigestStart = MYALLOC0(11 * sizeof(TCHAR));
+			_tcscpy_s(lpszHashDigestStart, 11, TEXT("hashdigest"));
+			LPTSTR lpszHashDigestAttr = MYALLOC0(11 * sizeof(TCHAR));
+			_tcscpy_s(lpszHashDigestAttr, 11, TEXT("type='md5'"));
+			LPTSTR lpszHashDigestEnd = MYALLOC0(12 * sizeof(TCHAR));
+			_tcscpy_s(lpszHashDigestEnd, 12, TEXT("/hashdigest"));
 
 			DWORD chHashDigest = (
 				(DWORD)_tcslen(lpszHashDigestStart) +
 				(DWORD)_tcslen(lpszHashDigestAttr) +
-				(DWORD)_tcslen(aMD5BLOCK->lpszMD5HashValue) +
+				(DWORD)_tcslen(sha1HashString) +
 				(DWORD)_tcslen(lpszHashDigestEnd) +
 				5 + 1); // 10 is for formatting, 1 for /0
 			LPTSTR lpszHashDigest = MYALLOC0(chHashDigest * sizeof(TCHAR));
-			_sntprintf(lpszHashDigest, chHashDigest, TEXT("<%s %s>%s<%s>"), lpszHashDigestStart, lpszHashDigestAttr, aMD5BLOCK->lpszMD5HashValue, lpszHashDigestEnd);
+			_sntprintf(lpszHashDigest, chHashDigest, TEXT("<%s %s>%s<%s>"), lpszHashDigestStart, lpszHashDigestAttr, sha1HashString, lpszHashDigestEnd);
 
-			//printf("lpszHashDigest: %ws\n", lpszHashDigest);
-			//printf("chHashDigest: %d\n", chHashDigest);
+			// Free some memory
+			if (NULL != lpszHashDigestStart) { MYFREE(lpszHashDigestStart); }
+			if (NULL != lpszHashDigestAttr) { MYFREE(lpszHashDigestAttr); }
+			if (NULL != lpszHashDigestEnd) { MYFREE(lpszHashDigestEnd); }
+			if (NULL != sha1HashString) { MYFREE(sha1HashString); }
 
-			LPTSTR lpszByteRunEnd = TEXT("</byte_run>");
+			LPTSTR lpszByteRunEnd = MYALLOC0(12 * sizeof(TCHAR));
+			_tcscpy_s(lpszByteRunEnd, 12, TEXT("</byte_run>"));
 
 			DWORD chByteRun = (
 				(DWORD)_tcslen(lpszByteRunStart) +
@@ -419,8 +444,13 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 
 			//printf("lpszByteRunString: %ws\n", lpszByteRunString);
 			xml_tagout_nnl(hFile, lpszByteRunString);
-		}
+			dwOffset = dwOffset + dwLength;
 
+			if (NULL != lpszByteRunStart) { MYFREE(lpszByteRunStart); }
+			if (NULL != lpszHashDigest) { MYFREE(lpszHashDigest); }
+			if (NULL != lpszByteRunEnd) { MYFREE(lpszByteRunEnd); }
+			if (NULL != lpszByteRunString) { MYFREE(lpszByteRunString); }
+		}
 		xml_ctagout(hFile, TEXT("byte_runs"));
 	}
 

@@ -27,6 +27,8 @@ LPTSTR lpszWindowsVersion;	// The Windows version number
 LPTSTR lpszStartDate;		// Program start date
 LPTSTR lpszAppState;		// Application state
 
+DWORD dwHashBlockSize = 0;
+
 //-----------------------------------------------------------------
 // LiveDiff wmain function
 //-----------------------------------------------------------------
@@ -71,6 +73,8 @@ int wmain(DWORD argc, TCHAR *argv[])
 	performSHA1Hashing = FALSE;			// Are we performing SHA1 hashing
 	performMD5Hashing = FALSE;			// Are we performing MD5 hashing
 	performMD5BlockHashing = FALSE;		// Are we performing MD5 BLOCK hashing
+	dwHashBlockSize = 0;
+
 	performDynamicBlacklisting = FALSE; // Are we performing dynamic blacklisting
 	performStaticBlacklisting = FALSE;	// Are we performing static blacklisting
 
@@ -94,9 +98,8 @@ int wmain(DWORD argc, TCHAR *argv[])
 	// LOAD = load one or two snapshots, then compare (triggered with "--load" argument)
 	LPTSTR modeOfOperation = TEXT("PROFILE");
 
-	// SMALL BLOCK OF CODE TO CHECK NEW MD5 BLOCK HASHING
 	//LPTSTR lpszFileNamey = TEXT("CellXML-Registry-1.2.0.exe");
-	//LPTSTR lpszFileNamey = TEXT("AD.exe"); 
+	////LPTSTR lpszFileNamey = TEXT("AD.exe"); 
 	//printf("NAME: %ws\n", lpszFileNamey);
 	//LPMD5BLOCK block = CalculateMD5Blocks(lpszFileNamey);
 	//exit(1);
@@ -197,6 +200,12 @@ int wmain(DWORD argc, TCHAR *argv[])
 			}
 			// Detemine if we are performing dynamic blacklisting
 			if (_tcscmp(argv[i], _T("-b")) == 0) {
+				// Check there is an entry after '-b'
+				if (argc <= i + 1) {
+					printf(">>> ERROR: Please enter a block size (e.g., 512, 4096). Exiting.\n");
+					exit(1);
+				}
+				dwHashBlockSize = _wtol(argv[i + 1]);
 				performMD5BlockHashing = TRUE;
 				dwBlacklist = 1;
 			}
@@ -245,6 +254,8 @@ int wmain(DWORD argc, TCHAR *argv[])
 			}
 		}
 	}
+
+	//printf("BS: %d", dwHashBlockSize);
 
 	// From here, call the appropriate function for mode of operation selected by user
 	if (modeOfOperation == TEXT("PROFILE"))

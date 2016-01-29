@@ -31,7 +31,7 @@ LPTSTR lpszExtDir;
 LPTSTR lpszWindowsDirName;
 
 // Set up buffer sizes for file hashing
-#define BLOCKSIZE	4096
+#define BLOCKSIZE	512
 #define BUFSIZE		1024
 #define SHA1LEN		20
 #define MD5LEN		16
@@ -93,7 +93,7 @@ LPTSTR CalculateMD5(LPTSTR FileName)
 	_tcscpy_s(md5HashString, 1, TEXT(""));
 	if (CryptGetHashParam(hHash, HP_HASHVAL, rgbHash, &cbHash, 0)) {
 		for (DWORD i = 0; i < cbHash; i++) {
-			_sntprintf(md5HashString + (i * 2), 2, TEXT("%02X\0"), rgbHash[i]);
+			_sntprintf(md5HashString + (i * 2), 2, TEXT("%02x\0"), rgbHash[i]);
 		}
 	}
 
@@ -160,7 +160,7 @@ LPTSTR CalculateSHA1(LPTSTR FileName)
 	_tcscpy_s(sha1HashString, 1, TEXT(""));
 	if (CryptGetHashParam(hHash, HP_HASHVAL, rgbHash, &cbHash, 0)) {
 		for (DWORD i = 0; i < cbHash; i++) {
-			_sntprintf(sha1HashString + (i * 2), 2, TEXT("%02X\0"), rgbHash[i]);
+			_sntprintf(sha1HashString + (i * 2), 2, TEXT("%02x\0"), rgbHash[i]);
 		}
 	}
 	CryptDestroyHash(hHash);
@@ -177,13 +177,10 @@ LPMD5BLOCK md5Block(BYTE rgbFile[BLOCKSIZE], DWORD dwFileOffset, DWORD dwRunLeng
 	HCRYPTPROV hProv = 0;
 	HCRYPTHASH hHash = 0;
 	BYTE rgbHash[MD5LEN];
-	LPTSTR sha1HashString;
 	DWORD cbHash = MD5LEN;
 
 	LPMD5BLOCK MD5Block = NULL;
 	MD5Block = MYALLOC0(sizeof(MD5BLOCK));
-	MD5Block->dwOffset = dwFileOffset;
-	MD5Block->dwLength = dwRunLength;
 
 	// Get handle to the crypto provider
 	if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
@@ -205,17 +202,17 @@ LPMD5BLOCK md5Block(BYTE rgbFile[BLOCKSIZE], DWORD dwFileOffset, DWORD dwRunLeng
 		return MD5Block;
 	}
 
-	sha1HashString = MYALLOC0((CALG_MD5 * 2 + 1) * sizeof(TCHAR));
-	_tcscpy_s(sha1HashString, 1, TEXT(""));
-	if (CryptGetHashParam(hHash, HP_HASHVAL, rgbHash, &cbHash, 0)) {
-		for (DWORD i = 0; i < cbHash; i++) {
-			_sntprintf(sha1HashString + (i * 2), 2, TEXT("%02X\0"), rgbHash[i]);
-		}
+	if (!CryptGetHashParam(hHash, HP_HASHVAL, rgbHash, &cbHash, 0)) {
+		printf(">>> ERROR: md5Block: CryptGetHashParam");
 	}
 
-	MD5Block->lpszMD5HashValue = sha1HashString;
-	MD5Block->lpNextMD5Block = NULL;
+	int p = 0;
+	while (p < MD5LEN) {
+		MD5Block->bMD5Hash[p] = rgbHash[p];
+		p++;
+	}
 
+	MD5Block->lpNextMD5Block = NULL;
 	return MD5Block;
 }
 
@@ -259,7 +256,7 @@ LPMD5BLOCK CalculateMD5Blocks(LPTSTR FileName)
 			break;
 		}
 
-		if (MD5Block->dwOffset == 0) {
+		if (dwFileOffset == 0) {
 			firstMD5Block = MD5Block;
 		}
 		else {
