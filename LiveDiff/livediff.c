@@ -26,8 +26,7 @@ LPTSTR lpszCommandline;		// The LiveDiff command line
 LPTSTR lpszWindowsVersion;	// The Windows version number
 LPTSTR lpszStartDate;		// Program start date
 LPTSTR lpszAppState;		// Application state
-
-DWORD dwHashBlockSize = 0;
+DWORD dwHashBlockSize;		// Hash block size
 
 //-----------------------------------------------------------------
 // LiveDiff wmain function
@@ -128,7 +127,7 @@ int wmain(DWORD argc, TCHAR *argv[])
 			printf("                  -p 3 = new/deleted/modified/changed entries;\n");
 			printf("             -c Select hash algorithm [default NONE]\n");
 			printf("                  -c md5, -c sha1, -c md5,sha1\n");
-			printf("             -b Perform MD5 bloack hashing [default NONE]\n\n");
+			printf("             -b Perform MD5 bloack hashing [default FALSE]\n\n");
 			printf("   Examples: LiveDiff.exe -c sha1 -b -p 2\n");
 			printf("             LiveDiff.exe -s -r blacklist-keys.txt -c md5\n");
 			printf("             LiveDiff.exe -c md5,sha1\n");
@@ -245,7 +244,6 @@ int wmain(DWORD argc, TCHAR *argv[])
 					printf("                      LiveDiff.exe -p 3\n");
 					exit(1);
 				}
-				
 			}
 			// Append command line arguments to string
 			_tcscat(lpszCommandline, argv[i]);
@@ -255,9 +253,7 @@ int wmain(DWORD argc, TCHAR *argv[])
 		}
 	}
 
-	//printf("BS: %d", dwHashBlockSize);
-
-	// From here, call the appropriate function for mode of operation selected by user
+    // From here, call the appropriate function for mode of operation selected by user
 	if (modeOfOperation == TEXT("PROFILE"))
 	{
 		// Call profile function

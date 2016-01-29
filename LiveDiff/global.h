@@ -116,82 +116,76 @@ struct _COUNTS
 	DWORD cKeysBlacklist;	// Count for blacklisted Registry values
 	DWORD cValuesBlacklist;	// Count for blacklisted Registry values
 };
-typedef struct _COUNTS COUNTS, FAR *LPCOUNTS;
+typedef struct _COUNTS COUNTS, *LPCOUNTS;
 
 // ----------------------------------------------------------------------
 // Structure used for Windows Registry value entries
 // ----------------------------------------------------------------------
 struct _VALUECONTENT
 {
-	DWORD  nTypeCode;                       // Type of value [DWORD,STRING...]
-	DWORD  cbData;                          // Value data size in bytes
-	LPTSTR lpszValueName;                   // Pointer to value's name
-	size_t cchValueName;                    // Length of value's name in chars
-	LPBYTE lpValueData;                     // Pointer to value's data
-	struct _VALUECONTENT FAR *lpBrotherVC;  // Pointer to value's brother
-	struct _KEYCONTENT FAR *lpFatherKC;     // Pointer to value's father key
-	DWORD  fValueMatch;                     // Flags used when comparing
+	DWORD  nTypeCode;						// Type of value [DWORD,STRING...]
+	DWORD  cbData;							// Value data size in bytes
+	LPTSTR lpszValueName;					// Pointer to value's name
+	size_t cchValueName;					// Length of value's name in chars
+	LPBYTE lpValueData;						// Pointer to value's data
+	struct _VALUECONTENT *lpBrotherVC;		// Pointer to value's brother
+	struct _KEYCONTENT *lpFatherKC;			// Pointer to value's father key
+	DWORD  fValueMatch;						// Flags used when comparing
 };
-typedef struct _VALUECONTENT VALUECONTENT, FAR *LPVALUECONTENT;
+typedef struct _VALUECONTENT VALUECONTENT, *LPVALUECONTENT;
 
 // ----------------------------------------------------------------------
 // Structure used for Windows Registry key entries
 // ----------------------------------------------------------------------
 struct _KEYCONTENT
 {
-	LPTSTR lpszKeyName;                     // Pointer to key's name
-	size_t cchKeyName;                      // Length of key's name in chars
+	LPTSTR lpszKeyName;						// Pointer to key's name
+	size_t cchKeyName;						// Length of key's name in chars
 	FILETIME ftLastWriteTime;				// Registry key last write time
-	LPVALUECONTENT lpFirstVC;               // Pointer to key's first value
-	struct _KEYCONTENT FAR *lpFirstSubKC;   // Pointer to key's first sub key
-	struct _KEYCONTENT FAR *lpBrotherKC;    // Pointer to key's brother
-	struct _KEYCONTENT FAR *lpFatherKC;     // Pointer to key's father
-	DWORD  fKeyMatch;                       // Flags used when comparing, until 1.8.2 was byte
+	LPVALUECONTENT lpFirstVC;				// Pointer to key's first value
+	struct _KEYCONTENT *lpFirstSubKC;		// Pointer to key's first sub key
+	struct _KEYCONTENT *lpBrotherKC;		// Pointer to key's brother
+	struct _KEYCONTENT *lpFatherKC;			// Pointer to key's father
+	DWORD  fKeyMatch;						// Flags used when comparing
 };
-typedef struct _KEYCONTENT KEYCONTENT, FAR *LPKEYCONTENT;
+typedef struct _KEYCONTENT KEYCONTENT, *LPKEYCONTENT;
 
 
 //-------------------------------------------------------------
-// MD5 Block Structure
+// MD5 Block Structure used for block hashing
 //-------------------------------------------------------------
 struct _MD5BLOCK
 {
 	BYTE bMD5Hash[16];
-	//DWORD dwOffset;
-	//DWORD dwLength;
 	struct _MD5BLOCK *lpNextMD5Block;
 };
 typedef struct _MD5BLOCK MD5BLOCK, *LPMD5BLOCK;
-
-VOID pushBlock(LPMD5BLOCK fatherMD5Block, LPMD5BLOCK MD5Block);
-LPMD5BLOCK CalculateMD5Blocks(LPTSTR FileName);
 
 // ----------------------------------------------------------------------
 // Structure used for file system content (files and directories)
 // ----------------------------------------------------------------------
 struct _FILECONTENT
 {
-	LPTSTR lpszFileName;                    // Pointer to file's name
-	size_t cchFileName;                     // Length of file's name in chars
-	DWORD  nWriteDateTimeLow;               // File write time [LOW  DWORD]
-	DWORD  nWriteDateTimeHigh;              // File write time [HIGH DWORD]
-	DWORD  nAccessDateTimeLow;              // File access time [LOW  DWORD]
-	DWORD  nAccessDateTimeHigh;             // File access time [HIGH DWORD]
-	DWORD  nFileSizeLow;                    // File size [LOW  DWORD]
-	DWORD  nFileSizeHigh;                   // File size [HIGH DWORD]
-	DWORD  nFileAttributes;                 // File attributes (e.g. directory or file)
+	LPTSTR lpszFileName;					// Pointer to file's name
+	size_t cchFileName;						// Length of file's name in chars
+	DWORD  nWriteDateTimeLow;				// File write time [LOW  DWORD]
+	DWORD  nWriteDateTimeHigh;				// File write time [HIGH DWORD]
+	DWORD  nAccessDateTimeLow;				// File access time [LOW  DWORD]
+	DWORD  nAccessDateTimeHigh;				// File access time [HIGH DWORD]
+	DWORD  nFileSizeLow;					// File size [LOW  DWORD]
+	DWORD  nFileSizeHigh;					// File size [HIGH DWORD]
+	DWORD  nFileAttributes;					// File attributes (e.g. directory or file)
 	LPTSTR lpszSHA1;						// SHA1 hash of file
 	size_t cchSHA1;							// Length of file's SHA1 in chars
 	LPTSTR lpszMD5;							// MD5 hash of file
 	size_t cchMD5;							// Length of file's MD5 in chars
-	struct _FILECONTENT FAR *lpFirstSubFC;  // Pointer to file's first sub file
-	struct _FILECONTENT FAR *lpBrotherFC;   // Pointer to file's brother
-	struct _FILECONTENT FAR *lpFatherFC;    // Pointer to file's father
-	DWORD fFileMatch;                       // Flags used when comparing
-	//struct _LPMD5BLOCK FAR *lpMD5Block;				// Linked list of MD5 block hashes
-	LPMD5BLOCK lpMD5Block;
+	struct _FILECONTENT *lpFirstSubFC;		// Pointer to file's first sub file
+	struct _FILECONTENT *lpBrotherFC;		// Pointer to file's brother
+	struct _FILECONTENT *lpFatherFC;		// Pointer to file's father
+	DWORD fFileMatch;						// Flags used when comparing
+	LPMD5BLOCK lpMD5Block;					// Linked list of MD5 block hashes
 };
-typedef struct _FILECONTENT FILECONTENT, FAR *LPFILECONTENT;
+typedef struct _FILECONTENT FILECONTENT, *LPFILECONTENT;
 
 // ----------------------------------------------------------------------
 // Structure used for first file system entry
@@ -199,75 +193,75 @@ typedef struct _FILECONTENT FILECONTENT, FAR *LPFILECONTENT;
 struct _HEADFILE
 {
 	LPFILECONTENT lpFirstFC;                // Pointer to head file's first file
-	struct _HEADFILE FAR *lpBrotherHF;      // Pointer to head file's brother
+	struct _HEADFILE *lpBrotherHF;      // Pointer to head file's brother
 	DWORD  fHeadFileMatch;                  // Flags used when comparing
 };
-typedef struct  _HEADFILE HEADFILE, FAR *LPHEADFILE;
+typedef struct  _HEADFILE HEADFILE, *LPHEADFILE;
 
 // ----------------------------------------------------------------------
 // Structure used for snapshots
 // ----------------------------------------------------------------------
 struct _SNAPSHOT
 {
-	LPKEYCONTENT	lpHKLM;                 // Pointer to snapshots HKLM registry keys
-	LPKEYCONTENT	lpHKU;                  // Pointer to snapshots HKU registry keys
-	LPHEADFILE		lpHF;                   // Pointer to snapshots head files
-	LPTSTR			lpszAppName;			// Application name
-	LPTSTR			lpszAppState;			// Application state (e.g., install, open, uninstall)
-	LPTSTR			lpszWindowsVersion;		// Windows version number
-	COUNTS			stCounts;				// Counts structure representing number of entries
-	BOOL			fFilled;                // Flag if snapshot was done/loaded (even if result is empty)
-	BOOL			fLoaded;                // Flag if snapshot was loaded from a file
+	LPKEYCONTENT lpHKLM;		// Pointer to snapshots HKLM registry keys
+	LPKEYCONTENT lpHKU;			// Pointer to snapshots HKU registry keys
+	LPHEADFILE lpHF;			// Pointer to snapshots head files
+	LPTSTR lpszAppName;			// Application name
+	LPTSTR lpszAppState;		// Application state (e.g., install, open, uninstall)
+	LPTSTR lpszWindowsVersion;	// Windows version number
+	COUNTS stCounts;			// Counts structure representing number of entries
+	BOOL fFilled;				// Flag if snapshot was done/loaded (even if result is empty)
+	BOOL fLoaded;				// Flag if snapshot was loaded from a file
 };
-typedef struct _SNAPSHOT SNAPSHOT, FAR *LPSNAPSHOT;
+typedef struct _SNAPSHOT SNAPSHOT, *LPSNAPSHOT;
 
 // ----------------------------------------------------------------------
 // Structure for a result list from snapshot comparison
 // ----------------------------------------------------------------------
 struct _COMPRESULT
 {
-	LPVOID lpContentOld;                    // Pointer to old content
-	LPVOID lpContentNew;                    // Pointer to new content
-	struct _COMPRESULT FAR *lpNextCR;       // Pointer to next _COMPRESULT
+	LPVOID lpContentOld;			// Pointer to old content
+	LPVOID lpContentNew;			// Pointer to new content
+	struct _COMPRESULT *lpNextCR;	// Pointer to next _COMPRESULT
 };
-typedef struct _COMPRESULT COMPRESULT, FAR *LPCOMPRESULT;
+typedef struct _COMPRESULT COMPRESULT, *LPCOMPRESULT;
 
 // ----------------------------------------------------------------------
 // Structure for pointers to lists of comapred and detected results
 // ----------------------------------------------------------------------
 struct _COMPPOINTERS
 {
-	LPCOMPRESULT  lpCRKeyDeleted;
-	LPCOMPRESULT  lpCRKeyAdded;
-	LPCOMPRESULT  lpCRValDeleted;
-	LPCOMPRESULT  lpCRValAdded;
-	LPCOMPRESULT  lpCRValModified;
-	LPCOMPRESULT  lpCRDirDeleted;
-	LPCOMPRESULT  lpCRDirAdded;
-	LPCOMPRESULT  lpCRDirModified;
-	LPCOMPRESULT  lpCRFileDeleted;
-	LPCOMPRESULT  lpCRFileAdded;
-	LPCOMPRESULT  lpCRFileModified;
+	LPCOMPRESULT lpCRKeyDeleted;
+	LPCOMPRESULT lpCRKeyAdded;
+	LPCOMPRESULT lpCRValDeleted;
+	LPCOMPRESULT lpCRValAdded;
+	LPCOMPRESULT lpCRValModified;
+	LPCOMPRESULT lpCRDirDeleted;
+	LPCOMPRESULT lpCRDirAdded;
+	LPCOMPRESULT lpCRDirModified;
+	LPCOMPRESULT lpCRFileDeleted;
+	LPCOMPRESULT lpCRFileAdded;
+	LPCOMPRESULT lpCRFileModified;
 };
-typedef struct _COMPPOINTERS COMPPOINTERS, FAR *LPCOMPPOINTERS;
+typedef struct _COMPPOINTERS COMPPOINTERS, *LPCOMPPOINTERS;
 
 // ----------------------------------------------------------------------
 // Structure for lists of comapred and detected results
 // ----------------------------------------------------------------------
 struct _COMPRESULTS
 {
-	LPSNAPSHOT		lpShot1;
-	LPSNAPSHOT		lpShot2;
-	COUNTS			stcCompared;
-	COUNTS          stcChanged;
-	COUNTS			stcDeleted;
-	COUNTS			stcAdded;
-	COUNTS			stcModified;
-	COMPPOINTERS	stCRHeads;
-	COMPPOINTERS	stCRCurrent;
-	BOOL			fFilled;		// Flag if comparison was done (even if result is empty)
+	LPSNAPSHOT lpShot1;
+	LPSNAPSHOT lpShot2;
+	COUNTS stcCompared;
+	COUNTS stcChanged;
+	COUNTS stcDeleted;
+	COUNTS stcAdded;
+	COUNTS stcModified;
+	COMPPOINTERS stCRHeads;
+	COMPPOINTERS stCRCurrent;
+	BOOL fFilled;
 };
-typedef struct _COMPRESULTS COMPRESULTS, FAR *LPCOMPRESULTS;
+typedef struct _COMPRESULTS COMPRESULTS, *LPCOMPRESULTS;
 
 //-------------------------------------------------------------
 // PREFIX TREE (TRIE) IMPLEMENTATION
@@ -351,6 +345,8 @@ VOID CompareHeadFiles(LPHEADFILE lpStartHF1, LPHEADFILE lpStartHF2);
 VOID ClearHeadFileMatchFlags(LPHEADFILE lpHF);
 VOID FreeAllHeadFiles(LPHEADFILE lpHF);
 BOOL DirChainMatch(LPHEADFILE lpHF1, LPHEADFILE lpHF2);
+VOID pushBlock(LPMD5BLOCK fatherMD5Block, LPMD5BLOCK MD5Block);
+LPMD5BLOCK CalculateMD5Blocks(LPTSTR FileName);
 
 // blacklist.c global function
 void TrieCreate(trieNode_t **root);

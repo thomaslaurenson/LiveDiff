@@ -276,7 +276,7 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 	LPTSTR lpszFileName;			// Full path and file name
 	DWORD FileSize = 0;				// File size
 	TCHAR lpszSizeString[64];
-	LPTSTR lpszMetaType = TEXT("");
+	LPTSTR lpszMetaType;
 	LPTSTR lpszAlloc;
 	LPTSTR lpszsha1Hash;
 	LPTSTR lpszmd5Hash;
@@ -298,25 +298,9 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 	}
 	xml_tagout(hFile, lpszFileObject, lpszFileObjectAttribute);
 
-	// Start processing the FILECONTENT, get full file name
+	// Start processing the FILECONTENT
+	// Get full file name
 	lpszFileName = GetWholeFileName(lpCR, 4);
-
-	// Normalise the full file path, then write to DFXML
-	// Remove first 3 characters (this removes "C:\")
-	/*
-	lpsznormFileName = MYALLOC(MAX_PATH * sizeof(TCHAR));
-	_tcscpy(lpsznormFileName, lpszFileName);
-	if (_tcslen(lpszFileName) > 3) {
-		lpsznormFileName += 3;
-	}
-	// Replace "\" with "/", this is how fiwalk outputs file paths
-	for (DWORD i = 0; i < _tcslen(lpsznormFileName); i++) {
-		if (lpsznormFileName[i] == (TCHAR)('\\')) {
-			lpsznormFileName[i] = (TCHAR)('/');
-		}
-	}
-	xml_out2s(hFile, TEXT("filename"), lpsznormFileName);
-	*/
 
 	// Write full path (filename) to XML report
 	// Need a check here for:
@@ -334,20 +318,22 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 	}
 
 	// Determine meta_type then write: files = 1, directories = 2
+	lpszMetaType = MYALLOC0(2 * sizeof(TCHAR));
 	if ((FILEADD == nActionType) || (FILEMODI == nActionType) || (FILEDEL == nActionType) || (FILECHNG == nActionType)) {
-		lpszMetaType = TEXT("1");
+		_tcscpy_s(lpszMetaType, 2, TEXT("1"));
 	}
 	if ((DIRADD == nActionType) || (DIRMODI == nActionType) || (DIRDEL == nActionType)) {
-		lpszMetaType = TEXT("2");
+		_tcscpy_s(lpszMetaType, 2, TEXT("2"));
 	}
 	xml_out2s(hFile, TEXT("meta_type"), lpszMetaType);
 
 	// Determine allocation then write
+	lpszAlloc = MYALLOC0(2 * sizeof(TCHAR));
 	if ((DIRDEL == nActionType) || (FILEDEL == nActionType)) {
-		lpszAlloc = TEXT("0");
+		_tcscpy_s(lpszAlloc, 2, TEXT("0"));
 	}
 	else {
-		lpszAlloc = TEXT("1");
+		_tcscpy_s(lpszAlloc, 2, TEXT("1"));
 	}
 	xml_out2s(hFile, TEXT("alloc_name"), lpszAlloc);
 	xml_out2s(hFile, TEXT("alloc_inode"), lpszAlloc);
@@ -373,7 +359,10 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 		xml_tagout(hFile, TEXT("byte_runs"), TEXT(""));
 		for (LPMD5BLOCK aMD5BLOCK = lpCR->lpMD5Block; NULL != aMD5BLOCK; aMD5BLOCK = aMD5BLOCK->lpNextMD5Block)
 		{
-			// <byte_run file_offset='45056' len='4096'>
+			// Each loop contructs an individual byte_run element
+			
+			// First, create the byte_run starting tag 
+			// e.g., <byte_run file_offset='45056' len='4096'>
 			WCHAR lpszOffset[10];
 			swprintf_s(lpszOffset, 10, L"%d", dwOffset);
 			WCHAR lpszLength[10];
@@ -401,18 +390,18 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 			if (NULL != lpszOffsetAttr) { MYFREE(lpszOffsetAttr); }
 			if (NULL != lpszLengthAttr) { MYFREE(lpszLengthAttr); }
 
-			// Convert MD5Hash (BYTE) to lpszMD5HashValue (LPTSTR)
-			LPTSTR sha1HashString = MYALLOC0((CALG_MD5 * 2 + 1) * sizeof(TCHAR));
-			//_tcscpy_s(sha1HashString, 1, TEXT(""));
-			for (DWORD i = 0; i < 16; i++) {
-				_sntprintf(sha1HashString + (i * 2), 2, TEXT("%02x\0"), aMD5BLOCK->bMD5Hash[i]);
-			}
-
-			// <hashdigest type='md5'>094FA8892A82C5C8CF742A033C7C7A3E</hashdigest>
+			// Now, contstuct the hashdigest element
+			// e.g., <hashdigest type='md5'>094fa8892a82c5c8cf742a033c7c7a3e</hashdigest>
 			LPTSTR lpszHashDigestStart = MYALLOC0(11 * sizeof(TCHAR));
 			_tcscpy_s(lpszHashDigestStart, 11, TEXT("hashdigest"));
 			LPTSTR lpszHashDigestAttr = MYALLOC0(11 * sizeof(TCHAR));
 			_tcscpy_s(lpszHashDigestAttr, 11, TEXT("type='md5'"));
+
+			// Convert MD5Hash value (a BYTE) to lpszMD5HashValue (a string (LPTSTR))
+			LPTSTR sha1HashString = MYALLOC0((CALG_MD5 * 2 + 1) * sizeof(TCHAR));
+			for (DWORD i = 0; i < 16; i++) {
+				_sntprintf(sha1HashString + (i * 2), 2, TEXT("%02x\0"), aMD5BLOCK->bMD5Hash[i]);
+			}
 			LPTSTR lpszHashDigestEnd = MYALLOC0(12 * sizeof(TCHAR));
 			_tcscpy_s(lpszHashDigestEnd, 12, TEXT("/hashdigest"));
 
@@ -421,7 +410,7 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 				(DWORD)_tcslen(lpszHashDigestAttr) +
 				(DWORD)_tcslen(sha1HashString) +
 				(DWORD)_tcslen(lpszHashDigestEnd) +
-				5 + 1); // 10 is for formatting, 1 for /0
+				5 + 1); // 5 is for formatting, 1 for /0
 			LPTSTR lpszHashDigest = MYALLOC0(chHashDigest * sizeof(TCHAR));
 			_sntprintf(lpszHashDigest, chHashDigest, TEXT("<%s %s>%s<%s>"), lpszHashDigestStart, lpszHashDigestAttr, sha1HashString, lpszHashDigestEnd);
 
@@ -431,9 +420,11 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 			if (NULL != lpszHashDigestEnd) { MYFREE(lpszHashDigestEnd); }
 			if (NULL != sha1HashString) { MYFREE(sha1HashString); }
 
+			// Now, contruct the byte_run end
 			LPTSTR lpszByteRunEnd = MYALLOC0(12 * sizeof(TCHAR));
 			_tcscpy_s(lpszByteRunEnd, 12, TEXT("</byte_run>"));
 
+			// Finally, write out each constructed byte_run section
 			DWORD chByteRun = (
 				(DWORD)_tcslen(lpszByteRunStart) +
 				(DWORD)_tcslen(lpszHashDigest) +
@@ -442,15 +433,18 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 			LPTSTR lpszByteRunString = MYALLOC0(chByteRun * sizeof(TCHAR));
 			_sntprintf(lpszByteRunString, chByteRun, TEXT("%s%s%s"), lpszByteRunStart, lpszHashDigest, lpszByteRunEnd);
 
-			//printf("lpszByteRunString: %ws\n", lpszByteRunString);
+			// Write contructed byte_run element to AFXML document
 			xml_tagout_nnl(hFile, lpszByteRunString);
 			dwOffset = dwOffset + dwLength;
 
+			// Free some memory, and we are done
 			if (NULL != lpszByteRunStart) { MYFREE(lpszByteRunStart); }
 			if (NULL != lpszHashDigest) { MYFREE(lpszHashDigest); }
 			if (NULL != lpszByteRunEnd) { MYFREE(lpszByteRunEnd); }
 			if (NULL != lpszByteRunString) { MYFREE(lpszByteRunString); }
 		}
+
+		// Close byte_runs element, and done with reporting block hashes.
 		xml_ctagout(hFile, TEXT("byte_runs"));
 	}
 
@@ -528,7 +522,6 @@ VOID PopulateCellObject(HANDLE hFile, DWORD nActionType, LPCOMPRESULT lpCR)
 		// Format mtime
 		LPTSTR lpszLastWriteTime;
 		SYSTEMTIME stLastWriteTime;
-		
 		FileTimeToSystemTime(&lpKC->ftLastWriteTime, &stLastWriteTime);
 		lpszLastWriteTime = MYALLOC0(21 * sizeof(TCHAR));
 		_sntprintf(lpszLastWriteTime, 21, TEXT("%i-%02i-%02iT%02i:%02i:%02iZ"),

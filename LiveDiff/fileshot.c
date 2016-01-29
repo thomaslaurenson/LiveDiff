@@ -275,15 +275,17 @@ LPMD5BLOCK CalculateMD5Blocks(LPTSTR FileName)
 }
 
 //-----------------------------------------------------------------
-// Block hashing: Append a MD5BLOCK to the previous MD5BLOCK
+// Block hashing: Append a MD5BLOCK to the last MD5BLOCK
 //----------------------------------------------------------------- 
 VOID pushBlock(LPMD5BLOCK firstMD5Block, LPMD5BLOCK MD5Block)
 {
 	LPMD5BLOCK current = firstMD5Block;
+	// Find the last MD5BLOCK in list
 	while (current->lpNextMD5Block != NULL) {
 		current = current->lpNextMD5Block;
 	}
 
+	// Allocate space, append populated MD5BLOCK and set the next to NULL
 	current->lpNextMD5Block = MYALLOC0(sizeof(MD5BLOCK));
 	current->lpNextMD5Block = MD5Block;
 	current->lpNextMD5Block->lpNextMD5Block = NULL;
