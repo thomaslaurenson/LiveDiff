@@ -60,13 +60,6 @@ extern HANDLE hHeap;
 #endif
 
 // ----------------------------------------------------------------------
-// Definitions to distinguish file system directories and files
-// ----------------------------------------------------------------------
-#define ISDIR(x)  ( (x&FILE_ATTRIBUTE_DIRECTORY) != 0 )
-#define ISFILE(x) ( (x&FILE_ATTRIBUTE_DIRECTORY) == 0 )
-#define ISSYM(x)  ( (x&FILE_ATTRIBUTE_REPARSE_POINT) != 0 )
-
-// ----------------------------------------------------------------------
 // Definitions for matching status, including modification type
 // ----------------------------------------------------------------------
 #define NOMATCH         0

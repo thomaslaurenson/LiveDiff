@@ -26,6 +26,16 @@ along with LiveDiff.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "global.h"
 
+// Workaround for older Platform/Windows SDKs (e.g. VS 6.0)
+#ifndef INVALID_FILE_ATTRIBUTES
+#define INVALID_FILE_ATTRIBUTES ((DWORD)-1)
+#endif
+
+// Definitions to distinguish file system directories and files
+#define ISDIR(x)  ( (x&FILE_ATTRIBUTE_DIRECTORY) != 0 )
+#define ISFILE(x) ( (x&FILE_ATTRIBUTE_DIRECTORY) == 0 )
+#define ISSYM(x)  ( (x&FILE_ATTRIBUTE_REPARSE_POINT) != 0 )
+
 WIN32_FIND_DATA FindData;
 LPTSTR lpszExtDir;
 LPTSTR lpszWindowsDirName;
@@ -184,12 +194,12 @@ LPMD5BLOCK md5Block(BYTE rgbFile[BLOCKSIZE], DWORD dwFileOffset, DWORD dwRunLeng
 
 	// Get handle to the crypto provider
 	if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
-		printf(">>> ERROR: md5Block: CryptAcquireContext");
+		printf(">>> ERROR: fileshot.c: md5Block: CryptAcquireContext");
 		return MD5Block;
 	}
 
 	if (!CryptCreateHash(hProv, CALG_MD5, 0, 0, &hHash)) {
-		printf(">>> ERROR: md5Block: CryptCreateHash"); 
+		printf(">>> ERROR: fileshot.c: md5Block: CryptCreateHash"); 
 		return MD5Block;
 	}
 
@@ -198,12 +208,12 @@ LPMD5BLOCK md5Block(BYTE rgbFile[BLOCKSIZE], DWORD dwFileOffset, DWORD dwRunLeng
 	if (!CryptHashData(hHash, rgbFile, cbRead, 0)) {
 		CryptReleaseContext(hProv, 0);
 		CryptDestroyHash(hHash);
-		printf(">>> ERROR: md5Block: CryptHashData"); 
+		printf(">>> ERROR: fileshot.c: md5Block: CryptHashData"); 
 		return MD5Block;
 	}
 
 	if (!CryptGetHashParam(hHash, HP_HASHVAL, rgbHash, &cbHash, 0)) {
-		printf(">>> ERROR: md5Block: CryptGetHashParam");
+		printf(">>> ERROR: fileshot.c: md5Block: CryptGetHashParam");
 	}
 
 	int p = 0;
@@ -583,6 +593,7 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 {
 	LPFILECONTENT lpFC;
 	HANDLE hFile;
+
 	// Full dir/file name is already given
 	// Extra local block to reduce stack usage due to recursive calls
 	{
@@ -592,7 +603,6 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 		// lpFatherFC only equals "C:\" and is called once at start
 		if (NULL == lpFatherFC) 
 		{
-			
 			// Check if file is to be GENERIC excluded
 			if ((NULL == lpszFullName)
 				|| (((TCHAR)'.' == lpszFullName[0])  // fast exclusion for 99% of the cases
@@ -600,13 +610,11 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 				|| (0 == _tcscmp(lpszFullName, TEXT("..")))))) {
 				return;
 			}
-
 			// Create new file content
 			lpFatherFC = MYALLOC0(sizeof(FILECONTENT));
 
 			// Set file name length
 			lpFatherFC->cchFileName = _tcslen(lpszFullName);
-
 			// Copy file name to new buffer for directory search and more
 			lpszFindFileName = MYALLOC((lpFatherFC->cchFileName + 4 + 1) * sizeof(TCHAR));  // +4 for "\*.*" search when directory (later in routine)
 			_tcscpy(lpszFindFileName, lpszFullName);
@@ -615,6 +623,8 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 				lpszFindFileName[lpFatherFC->cchFileName] = (TCHAR)'\\';
 				lpszFindFileName[lpFatherFC->cchFileName + 1] = (TCHAR)'\0';
 			}
+			//printf("lpszFullName: %ws\n", lpszFullName);
+			//printf("lpszFindFileName: %ws\n", lpszFindFileName);
 
 			hFile = FindFirstFile(lpszFullName, &FindData);
 			if (INVALID_HANDLE_VALUE != hFile) {
@@ -716,6 +726,7 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 	}  // End of extra local block
 	if (INVALID_HANDLE_VALUE == hFile) {  
 		// error: nothing in dir, no access, etc.
+		printf(">>> ERROR: fileshot.c: getFileSnap: INVALID_HANDLE_VALUE: %ws\n", lpszFullName);
 		return;
 	}
 	// b) process entry then find next
