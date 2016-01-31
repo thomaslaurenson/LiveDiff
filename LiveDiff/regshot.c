@@ -1043,9 +1043,10 @@ LPKEYCONTENT GetRegistrySnap(LPSNAPSHOT lpShot, HKEY hRegKey, LPTSTR lpszRegKeyN
 
 				// If the Registry value name is NULL, make it "(Default)"
 				// This inline with MSDN naming conventions and will ease later processing
-				if (lpVC->lpszValueName == NULL) {
-					MYFREE(lpVC->lpszValueName);
+				if (lpVC->lpszValueName == NULL) 
+				{
 					LPTSTR lpszDefaultValueName = TEXT("(Default)\0");
+					MYFREE(lpVC->lpszValueName);
 					lpVC->cchValueName = _tcslen(lpszDefaultValueName);
 					lpVC->lpszValueName = MYALLOC(lpVC->cchValueName * sizeof(TCHAR));
 					_tcscpy(lpVC->lpszValueName, lpszDefaultValueName);

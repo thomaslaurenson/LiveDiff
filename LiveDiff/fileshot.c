@@ -61,6 +61,7 @@ LPTSTR CalculateMD5(LPTSTR FileName)
 	BYTE rgbHash[MD5LEN];
 	CHAR rgbDigits[] = "0123456789abcdef";
 	LPTSTR md5HashString;
+	DWORD i;
 
 	// Open the file to perform hash
 	hashFile = CreateFile(FileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
@@ -101,8 +102,9 @@ LPTSTR CalculateMD5(LPTSTR FileName)
 	// Finally got here with no errors, now calculate the SHA1 hash value
 	md5HashString = MYALLOC0((MD5LEN * 2 + 1) * sizeof(TCHAR));
 	_tcscpy_s(md5HashString, 1, TEXT(""));
-	if (CryptGetHashParam(hHash, HP_HASHVAL, rgbHash, &cbHash, 0)) {
-		for (DWORD i = 0; i < cbHash; i++) {
+	if (CryptGetHashParam(hHash, HP_HASHVAL, rgbHash, &cbHash, 0)) 
+	{
+		for (i = 0; i < cbHash; i++) {
 			_sntprintf(md5HashString + (i * 2), 2, TEXT("%02x\0"), rgbHash[i]);
 		}
 	}
@@ -128,6 +130,7 @@ LPTSTR CalculateSHA1(LPTSTR FileName)
 	BYTE rgbHash[SHA1LEN];
 	CHAR rgbDigits[] = "0123456789abcdef";
 	LPTSTR sha1HashString;
+	DWORD i;
 
 	// Open the file to perform hash
 	hashFile = CreateFile(FileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
@@ -169,7 +172,7 @@ LPTSTR CalculateSHA1(LPTSTR FileName)
 	sha1HashString = MYALLOC0((SHA1LEN * 2 + 1) * sizeof(TCHAR));
 	_tcscpy_s(sha1HashString, 1, TEXT(""));
 	if (CryptGetHashParam(hHash, HP_HASHVAL, rgbHash, &cbHash, 0)) {
-		for (DWORD i = 0; i < cbHash; i++) {
+		for (i = 0; i < cbHash; i++) {
 			_sntprintf(sha1HashString + (i * 2), 2, TEXT("%02x\0"), rgbHash[i]);
 		}
 	}
@@ -188,8 +191,10 @@ LPMD5BLOCK md5Block(BYTE rgbFile[BLOCKSIZE], DWORD dwFileOffset, DWORD dwRunLeng
 	HCRYPTHASH hHash = 0;
 	BYTE rgbHash[MD5LEN];
 	DWORD cbHash = MD5LEN;
-
+	DWORD cbRead;
+	DWORD i;
 	LPMD5BLOCK MD5Block = NULL;
+
 	MD5Block = MYALLOC0(sizeof(MD5BLOCK));
 
 	// Get handle to the crypto provider
@@ -203,7 +208,7 @@ LPMD5BLOCK md5Block(BYTE rgbFile[BLOCKSIZE], DWORD dwFileOffset, DWORD dwRunLeng
 		return MD5Block;
 	}
 
-	DWORD cbRead = dwRunLength;
+	cbRead = dwRunLength;
 
 	if (!CryptHashData(hHash, rgbFile, cbRead, 0)) {
 		CryptReleaseContext(hProv, 0);
@@ -216,10 +221,10 @@ LPMD5BLOCK md5Block(BYTE rgbFile[BLOCKSIZE], DWORD dwFileOffset, DWORD dwRunLeng
 		printf(">>> ERROR: fileshot.c: md5Block: CryptGetHashParam");
 	}
 
-	int p = 0;
-	while (p < MD5LEN) {
-		MD5Block->bMD5Hash[p] = rgbHash[p];
-		p++;
+	i = 0;
+	while (i < MD5LEN) {
+		MD5Block->bMD5Hash[i] = rgbHash[i];
+		i++;
 	}
 
 	MD5Block->lpNextMD5Block = NULL;
@@ -237,7 +242,7 @@ LPMD5BLOCK CalculateMD5Blocks(LPTSTR FileName)
 	BYTE rgbFile[BLOCKSIZE];
 	CHAR rgbDigits[] = "0123456789abcdef";
 	DWORD dwFileOffset = 0;
-
+	LPMD5BLOCK MD5Block;
 	LPMD5BLOCK firstMD5Block = MYALLOC0(sizeof(LPMD5BLOCK));
 
 	// Open the file to perform hash
@@ -259,7 +264,7 @@ LPMD5BLOCK CalculateMD5Blocks(LPTSTR FileName)
 			break;
 		}
 
-		LPMD5BLOCK MD5Block = md5Block(rgbFile, dwFileOffset, cbRead);
+		MD5Block = md5Block(rgbFile, dwFileOffset, cbRead); // THIS EDIT MAY CAUSE PROBLEMS?!
 
 		if (MD5Block == NULL) {
 			printf(">>> ERROR: CalculateMD5Blocks: Error creating MD5BLOCK");
@@ -593,6 +598,8 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 {
 	LPFILECONTENT lpFC;
 	HANDLE hFile;
+	BOOL calculateHash = TRUE;
+	BOOL found = FALSE;
 
 	// Full dir/file name is already given
 	// Extra local block to reduce stack usage due to recursive calls
@@ -726,14 +733,14 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 	}  // End of extra local block
 	if (INVALID_HANDLE_VALUE == hFile) {  
 		// error: nothing in dir, no access, etc.
-		printf(">>> ERROR: fileshot.c: getFileSnap: INVALID_HANDLE_VALUE: %ws\n", lpszFullName);
+		//printf(">>> ERROR: fileshot.c: getFileSnap: INVALID_HANDLE_VALUE: %ws\n", lpszFullName);
 		return;
 	}
 	// b) process entry then find next
 	do {
 		lpszFullName = NULL;
-		BOOL calculateHash = TRUE;
-		BOOL found = FALSE;
+		//BOOL calculateHash = TRUE;
+		//BOOL found = FALSE;
 
 		// Check if file is to be GENERIC excluded (dot dirs)
 		if ((NULL == FindData.cFileName)

@@ -36,6 +36,9 @@
     <ClCompile Include="blacklist.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="snapshot.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="global.h">

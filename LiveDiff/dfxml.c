@@ -116,18 +116,20 @@ VOID xml_ctagout(HANDLE hFile, LPTSTR tag)
 //-----------------------------------------------------------------
 LPTSTR xml_ampersand_check(LPTSTR value)
 {
+	wchar_t * pwc;
+	DWORD i;
 	size_t maxLen = (DWORD)((_tcslen(value) + 100) * sizeof(TCHAR));
 	wchar_t *line = MYALLOC0(maxLen * sizeof(TCHAR));
 	memcpy(line, value, maxLen);
 
 	//printf("\n\nSTART: %ws\n", line);
-	wchar_t * pwc;
+	
 	pwc = _tcschr(line, L'&');
 	while (pwc != NULL) 
 	{
-		int j = pwc - line;
-		line = replace_string(line, pwc, j, TEXT("&amp;"));
-		pwc = _tcschr(line + j + 1, L'&');
+		i = pwc - line;
+		line = replace_string(line, pwc, i, TEXT("&amp;"));
+		pwc = _tcschr(line + i + 1, L'&');
 	}
 	//printf("FIXED: %ws\n", line);	
 	return line;
@@ -138,18 +140,20 @@ LPTSTR xml_ampersand_check(LPTSTR value)
 //-----------------------------------------------------------------
 LPTSTR xml_apos_check(LPTSTR value)
 {
+	DWORD i;
+	wchar_t * pwc;
 	size_t maxLen = (DWORD)((_tcslen(value) + 100) * sizeof(TCHAR));
 	wchar_t *line = MYALLOC0(maxLen * sizeof(TCHAR));
 	memcpy(line, value, maxLen);
 
 	//printf("\n\nSTART: %ws\n", line);
-	wchar_t * pwc;
+	
 	pwc = _tcschr(line, L'\'');
 	while (pwc != NULL) 
 	{
-		int j = pwc - line;
-		line = replace_string(line, pwc, j, TEXT("&apos;"));
-		pwc = _tcschr(line + j + 1, L'\'');
+		i = pwc - line;
+		line = replace_string(line, pwc, i, TEXT("&apos;"));
+		pwc = _tcschr(line + i + 1, L'\'');
 	}
 	//printf("FIXED: %ws\n", line);	
 	return line;
@@ -160,18 +164,20 @@ LPTSTR xml_apos_check(LPTSTR value)
 //-----------------------------------------------------------------
 LPTSTR xml_quote_check(LPTSTR value)
 {
+	DWORD i;
+	wchar_t * pwc;
 	size_t maxLen = (DWORD)((_tcslen(value) + 100) * sizeof(TCHAR));
 	wchar_t *line = MYALLOC0(maxLen * sizeof(TCHAR));
 	memcpy(line, value, maxLen);
 
 	//printf("\n\nSTART: %ws\n", line);
-	wchar_t * pwc;
+	
 	pwc = _tcschr(line, L'"');
 	while (pwc != NULL) 
 	{
-		int j = pwc - line;
-		line = replace_string(line, pwc, j, TEXT("&quot;"));
-		pwc = _tcschr(line + j + 1, L'"');
+		i = pwc - line;
+		line = replace_string(line, pwc, i, TEXT("&quot;"));
+		pwc = _tcschr(line + i + 1, L'"');
 	}
 	//printf("FIXED: %ws\n", line);	
 	return line;
@@ -182,18 +188,19 @@ LPTSTR xml_quote_check(LPTSTR value)
 //-----------------------------------------------------------------
 LPTSTR xml_gt_check(LPTSTR value)
 {
+	DWORD i;
+	wchar_t * pwc;
 	size_t maxLen = (DWORD)((_tcslen(value) + 100) * sizeof(TCHAR));
 	wchar_t *line = MYALLOC0(maxLen * sizeof(TCHAR));
 	memcpy(line, value, maxLen);
 
 	//printf("\n\nSTART: %ws\n", line);
-	wchar_t * pwc;
 	pwc = _tcschr(line, L'>');
 	while (pwc != NULL) 
 	{
-		int j = pwc - line;
-		line = replace_string(line, pwc, j, TEXT("&gt;"));
-		pwc = _tcschr(line + j + 1, L'>');
+		i = pwc - line;
+		line = replace_string(line, pwc, i, TEXT("&gt;"));
+		pwc = _tcschr(line + i + 1, L'>');
 	}
 	//printf("FIXED: %ws\n", line);	
 	return line;
@@ -204,18 +211,19 @@ LPTSTR xml_gt_check(LPTSTR value)
 //-----------------------------------------------------------------
 LPTSTR xml_lt_check(LPTSTR value)
 {
+	DWORD i;
+	wchar_t * pwc;
 	size_t maxLen = (DWORD)((_tcslen(value) + 100) * sizeof(TCHAR));
 	wchar_t *line = MYALLOC0(maxLen * sizeof(TCHAR));
 	memcpy(line, value, maxLen);
 
 	//printf("\n\nSTART: %ws\n", line);
-	wchar_t * pwc;
 	pwc = _tcschr(line, L'<');
 	while (pwc != NULL) 
 	{
-		int j = pwc - line;
-		line = replace_string(line, pwc, j, TEXT("&lt;"));
-		pwc = _tcschr(line + j + 1, L'<');
+		i = pwc - line;
+		line = replace_string(line, pwc, i, TEXT("&lt;"));
+		pwc = _tcschr(line + i + 1, L'<');
 	}
 	//printf("FIXED: %ws\n", line);	
 	return line;
@@ -241,22 +249,25 @@ LPTSTR replace_string(LPTSTR all, LPTSTR end, size_t posd, LPTSTR replace)
 //-----------------------------------------------------------------
 BOOL xml_check_control(LPTSTR value)
 {
+	size_t maxLen = (_tcslen(value) * sizeof(TCHAR));
+	wchar_t *line = MYALLOC0(maxLen * sizeof(TCHAR));
+	BOOL result = FALSE;
+	size_t i = 0;
+	size_t maxLenOut;
+
 	//printf("%ws\n", value);
 	if (value == NULL || 0 == _tcscmp(value, TEXT(""))) {
 		return FALSE;
 	}
 	
-	size_t maxLen = (_tcslen(value) * sizeof(TCHAR));
-	wchar_t *line = MYALLOC0(maxLen * sizeof(TCHAR));
 	memcpy(line, value, maxLen);
-	BOOL result = FALSE;
-	size_t i = 0;
+
 
 	while (!_istcntrl(line[i])) {
 		result = FALSE;
 		i++;
 	}
-	size_t maxLenOut = (i * sizeof(TCHAR));
+	maxLenOut = (i * sizeof(TCHAR));
 	if (maxLen != maxLenOut) {
 		result = TRUE;
 	}
@@ -280,6 +291,8 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 	LPTSTR lpszAlloc;
 	LPTSTR lpszsha1Hash;
 	LPTSTR lpszmd5Hash;
+
+
 
 	lpszFileObject = TEXT("fileobject");
 	// Write FileObject starting element with delta, determined by nActionType
@@ -356,33 +369,52 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 	{
 		DWORD dwOffset = 0;
 		DWORD dwLength = 512;
+		LPMD5BLOCK aMD5BLOCK;
+
 		xml_tagout(hFile, TEXT("byte_runs"), TEXT(""));
-		for (LPMD5BLOCK aMD5BLOCK = lpCR->lpMD5Block; NULL != aMD5BLOCK; aMD5BLOCK = aMD5BLOCK->lpNextMD5Block)
+		for (aMD5BLOCK = lpCR->lpMD5Block; NULL != aMD5BLOCK; aMD5BLOCK = aMD5BLOCK->lpNextMD5Block)
 		{
 			// Each loop contructs an individual byte_run element
-			
+			LPTSTR lpszByteRun;
+			LPTSTR lpszOffsetAttr;
+			LPTSTR lpszLengthAttr;
+			WCHAR lpszOffset[10];
+			WCHAR lpszLength[10];
+			LPTSTR lpszByteRunStart;
+			LPTSTR lpszHashDigestStart;
+			LPTSTR lpszHashDigestAttr;
+			LPTSTR sha1HashString;
+			LPTSTR lpszHashDigestEnd;
+			LPTSTR lpszHashDigest;
+			LPTSTR lpszByteRunEnd;
+			LPTSTR lpszByteRunString;
+			DWORD chByteRunStart;
+			DWORD chByteRun;
+			DWORD chHashDigest;
+			DWORD i;
+
 			// First, create the byte_run starting tag 
 			// e.g., <byte_run file_offset='45056' len='4096'>
-			WCHAR lpszOffset[10];
+			//WCHAR lpszOffset[10];
 			swprintf_s(lpszOffset, 10, L"%d", dwOffset);
-			WCHAR lpszLength[10];
+			//WCHAR lpszLength[10];
 			swprintf_s(lpszLength, 10, L"%d", dwLength);
 
-			LPTSTR lpszByteRun = MYALLOC0(9 * sizeof(TCHAR));
+			lpszByteRun = MYALLOC0(9 * sizeof(TCHAR));
 			_tcscpy_s(lpszByteRun, 9, TEXT("byte_run"));
-			LPTSTR lpszOffsetAttr = MYALLOC0(12 * sizeof(TCHAR));
+			lpszOffsetAttr = MYALLOC0(12 * sizeof(TCHAR));
 			_tcscpy_s(lpszOffsetAttr, 12, TEXT("file_offset"));
-			LPTSTR lpszLengthAttr = MYALLOC0(4 * sizeof(TCHAR));
+			lpszLengthAttr = MYALLOC0(4 * sizeof(TCHAR));
 			_tcscpy_s(lpszLengthAttr, 4, TEXT("len"));
 
-			DWORD chByteRunStart = (
+			chByteRunStart = (
 				(DWORD)_tcslen(lpszByteRun) +
 				(DWORD)_tcslen(lpszOffsetAttr) +
 				(DWORD)_tcslen(lpszOffset) +
 				(DWORD)_tcslen(lpszLengthAttr) +
 				(DWORD)_tcslen(lpszLength) +
 				10 + 1); // 10 is for formatting, 1 for /0
-			LPTSTR lpszByteRunStart = MYALLOC0(chByteRunStart * sizeof(TCHAR));
+			lpszByteRunStart = MYALLOC0(chByteRunStart * sizeof(TCHAR));
 			_sntprintf(lpszByteRunStart, chByteRunStart, TEXT("<%s %s='%s' %s='%s'>"), lpszByteRun, lpszOffsetAttr, lpszOffset, lpszLengthAttr, lpszLength);
 
 			// Free some memory
@@ -392,26 +424,26 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 
 			// Now, contstuct the hashdigest element
 			// e.g., <hashdigest type='md5'>094fa8892a82c5c8cf742a033c7c7a3e</hashdigest>
-			LPTSTR lpszHashDigestStart = MYALLOC0(11 * sizeof(TCHAR));
+			lpszHashDigestStart = MYALLOC0(11 * sizeof(TCHAR));
 			_tcscpy_s(lpszHashDigestStart, 11, TEXT("hashdigest"));
-			LPTSTR lpszHashDigestAttr = MYALLOC0(11 * sizeof(TCHAR));
+			lpszHashDigestAttr = MYALLOC0(11 * sizeof(TCHAR));
 			_tcscpy_s(lpszHashDigestAttr, 11, TEXT("type='md5'"));
 
 			// Convert MD5Hash value (a BYTE) to lpszMD5HashValue (a string (LPTSTR))
-			LPTSTR sha1HashString = MYALLOC0((CALG_MD5 * 2 + 1) * sizeof(TCHAR));
-			for (DWORD i = 0; i < 16; i++) {
+			sha1HashString = MYALLOC0((CALG_MD5 * 2 + 1) * sizeof(TCHAR));
+			for (i = 0; i < 16; i++) {
 				_sntprintf(sha1HashString + (i * 2), 2, TEXT("%02x\0"), aMD5BLOCK->bMD5Hash[i]);
 			}
-			LPTSTR lpszHashDigestEnd = MYALLOC0(12 * sizeof(TCHAR));
+			lpszHashDigestEnd = MYALLOC0(12 * sizeof(TCHAR));
 			_tcscpy_s(lpszHashDigestEnd, 12, TEXT("/hashdigest"));
 
-			DWORD chHashDigest = (
+			chHashDigest = (
 				(DWORD)_tcslen(lpszHashDigestStart) +
 				(DWORD)_tcslen(lpszHashDigestAttr) +
 				(DWORD)_tcslen(sha1HashString) +
 				(DWORD)_tcslen(lpszHashDigestEnd) +
 				5 + 1); // 5 is for formatting, 1 for /0
-			LPTSTR lpszHashDigest = MYALLOC0(chHashDigest * sizeof(TCHAR));
+			lpszHashDigest = MYALLOC0(chHashDigest * sizeof(TCHAR));
 			_sntprintf(lpszHashDigest, chHashDigest, TEXT("<%s %s>%s<%s>"), lpszHashDigestStart, lpszHashDigestAttr, sha1HashString, lpszHashDigestEnd);
 
 			// Free some memory
@@ -421,16 +453,16 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 			if (NULL != sha1HashString) { MYFREE(sha1HashString); }
 
 			// Now, contruct the byte_run end
-			LPTSTR lpszByteRunEnd = MYALLOC0(12 * sizeof(TCHAR));
+			lpszByteRunEnd = MYALLOC0(12 * sizeof(TCHAR));
 			_tcscpy_s(lpszByteRunEnd, 12, TEXT("</byte_run>"));
 
 			// Finally, write out each constructed byte_run section
-			DWORD chByteRun = (
+			chByteRun = (
 				(DWORD)_tcslen(lpszByteRunStart) +
 				(DWORD)_tcslen(lpszHashDigest) +
 				(DWORD)_tcslen(lpszByteRunEnd) +
 				1); // 10 is for formatting, 1 for /0
-			LPTSTR lpszByteRunString = MYALLOC0(chByteRun * sizeof(TCHAR));
+			lpszByteRunString = MYALLOC0(chByteRun * sizeof(TCHAR));
 			_sntprintf(lpszByteRunString, chByteRun, TEXT("%s%s%s"), lpszByteRunStart, lpszHashDigest, lpszByteRunEnd);
 
 			// Write contructed byte_run element to AFXML document
@@ -510,6 +542,9 @@ VOID PopulateCellObject(HANDLE hFile, DWORD nActionType, LPCOMPRESULT lpCR)
 	if ((KEYDEL == nActionType) || (KEYADD == nActionType)) 
 	{
 		LPKEYCONTENT lpKC = lpCR;
+		LPTSTR lpszLastWriteTime;
+		SYSTEMTIME stLastWriteTime;
+
 		lpszCellPath = GetWholeKeyName(lpKC, fUseLongRegHead);
 
 		// Check the cellpath sting for special characters that need to be escaped
@@ -520,8 +555,6 @@ VOID PopulateCellObject(HANDLE hFile, DWORD nActionType, LPCOMPRESULT lpCR)
 		lpszCellPath = xml_lt_check(lpszCellPath);
 
 		// Format mtime
-		LPTSTR lpszLastWriteTime;
-		SYSTEMTIME stLastWriteTime;
 		FileTimeToSystemTime(&lpKC->ftLastWriteTime, &stLastWriteTime);
 		lpszLastWriteTime = MYALLOC0(21 * sizeof(TCHAR));
 		_sntprintf(lpszLastWriteTime, 21, TEXT("%i-%02i-%02iT%02i:%02i:%02iZ"),
@@ -584,6 +617,7 @@ VOID PopulateCellObject(HANDLE hFile, DWORD nActionType, LPCOMPRESULT lpCR)
 		if (xml_check_control(lpszData)) 
 		{
 			DWORD pcchString = 0;
+			LPTSTR pszString;
 
 			// First, determine length requires
 			CryptBinaryToString(lpVC->lpValueData,
@@ -593,7 +627,7 @@ VOID PopulateCellObject(HANDLE hFile, DWORD nActionType, LPCOMPRESULT lpCR)
 				&pcchString);
 
 			// Allocate size for base64 encoded string
-			LPTSTR pszString = MYALLOC(pcchString * sizeof(TCHAR));
+			pszString = MYALLOC(pcchString * sizeof(TCHAR));
 
 			// Now, encode value using base64
 			CryptBinaryToString(lpVC->lpValueData,
@@ -603,7 +637,7 @@ VOID PopulateCellObject(HANDLE hFile, DWORD nActionType, LPCOMPRESULT lpCR)
 				&pcchString);
 
 			// Write out the data (which is base64 encoded)
-			xml_out2s(hFile, TEXT("data_encoding"), TEXT("base64"));
+			xml_out2s(hFile, TEXT("data_encoding"), L"base64");
 			xml_out2s(hFile, TEXT("data"), pszString);
 		}
 		else

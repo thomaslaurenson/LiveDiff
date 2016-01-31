@@ -35,7 +35,15 @@ int wmain(DWORD argc, TCHAR *argv[])
 {
 	clock_t startProgramClockTimer;	// Start timer
 	clock_t endProgramClockTimer;	// End timer
+	SYSTEMTIME stStartTime;
+	LPTSTR loadFileName1;
+	LPTSTR loadFileName2;
+	LPTSTR modeOfOperation;
+	WIN32_FIND_DATA FindFileData;
+	HANDLE handle;
+	DWORD i;
 	int msec;						// Millisecond variable for timer
+
 	hHeap = GetProcessHeap();		// Initialise heap
 	SetTextsToDefaultLanguage();	// Initialise common strings
 
@@ -43,7 +51,7 @@ int wmain(DWORD argc, TCHAR *argv[])
 	startProgramClockTimer = clock(), endProgramClockTimer;
 
 	// Determine start date and time in ISO 8601 format
-	SYSTEMTIME stStartTime;
+	
 	GetLocalTime(&stStartTime);
 	lpszStartDate = MYALLOC0(21 * sizeof(TCHAR));
 	_sntprintf(lpszStartDate, 21, TEXT("%i-%02i-%02iT%02i:%02i:%02iZ"),
@@ -78,8 +86,8 @@ int wmain(DWORD argc, TCHAR *argv[])
 	performStaticBlacklisting = FALSE;	// Are we performing static blacklisting
 
 	// File name for previosuly saved snapshots to load
-	LPTSTR loadFileName1 = MYALLOC0(MAX_PATH * sizeof(TCHAR));  // Snapshot1
-	LPTSTR loadFileName2 = MYALLOC0(MAX_PATH * sizeof(TCHAR));  // Snapshot2
+	loadFileName1 = MYALLOC0(MAX_PATH * sizeof(TCHAR));  // Snapshot1
+	loadFileName2 = MYALLOC0(MAX_PATH * sizeof(TCHAR));  // Snapshot2
 
 	// Command line string, populated when parsing command line arguments
 	lpszCommandline = MYALLOC0(100 * sizeof(TCHAR));
@@ -95,7 +103,7 @@ int wmain(DWORD argc, TCHAR *argv[])
 	// PROFILE = looped snapshot comparison procedure (default)
 	// PROFILEREBOOT = continue profile mode after reboot
 	// LOAD = load one or two snapshots, then compare (triggered with "--load" argument)
-	LPTSTR modeOfOperation = TEXT("PROFILE");
+	modeOfOperation = TEXT("PROFILE");
 
 	//LPTSTR lpszFileNamey = TEXT("CellXML-Registry-1.2.0.exe");
 	////LPTSTR lpszFileNamey = TEXT("AD.exe"); 
@@ -138,7 +146,7 @@ int wmain(DWORD argc, TCHAR *argv[])
 		}
 		
 		// Scan the command line arguments and set booleans
-		for (DWORD i = 0; i < argc; i++)
+		for (i = 0; i < argc; i++)
 		{
 			// MODE: Determine if we are creating an APXML profile
 			if (_tcscmp(argv[i], _T("--profile")) == 0) {
@@ -212,8 +220,7 @@ int wmain(DWORD argc, TCHAR *argv[])
 			if (_tcscmp(argv[i], _T("-f")) == 0) {
 				staticBlacklist = TRUE;
 				lpszStaticBlacklist = argv[i + 1]; // COPY OVER PROPERLY
-				WIN32_FIND_DATA FindFileData;
-				HANDLE handle = FindFirstFile(lpszStaticBlacklist, &FindFileData);
+				handle = FindFirstFile(lpszStaticBlacklist, &FindFileData);
 				// Check the file exists
 				if (handle == INVALID_HANDLE_VALUE) {
 					printf(">>> ERROR: Invalid static blacklist file. Exiting.\n");
@@ -353,8 +360,8 @@ BOOL performShotOne()
 	printf("  > Scanning time: %d seconds %d milliseconds\n", msec / 1000, msec % 1000);
 	// If requested, save snapshot 1
 	if (saveSnapShots) {
-		printf("  > Saving snapshot 1...\n");
 		LPTSTR lpszFileName = TEXT("LD1.shot");
+		printf("  > Saving snapshot 1...\n");
 		//SaveShot(lpShot, lpszFileName);
 		wprintf(L"  > Snapshot sucessfully saved as: %s\n", lpszFileName);
 	}
@@ -386,9 +393,10 @@ BOOL performShotTwo()
 	msec = endClockTimer * 1000 / CLOCKS_PER_SEC;
 	printf("  > Scanning time: %d seconds %d milliseconds\n", msec / 1000, msec % 1000);
 	// If requested, save snapshot 2
-	if (saveSnapShots) {
-		printf("  > Saving snapshot 2...\n");
+	if (saveSnapShots) 
+	{
 		LPTSTR lpszFileName = TEXT("LD2.shot");
+		printf("  > Saving snapshot 2...\n");
 		//SaveShot(lpShot, lpszFileName);
 		wprintf(L"  > Snapshot sucessfully saved as: %s\n", lpszFileName);
 	}
@@ -466,6 +474,8 @@ BOOL snapshotProfile()
 	LPTSTR lpszAppName;
 	LPTSTR lpszAppVersion;
 	LPTSTR lpszAPXMLFileName;
+	size_t cchlpszLifeCycleState;
+	size_t loopCount = 0;
 
 	// Enter interactive application life cycle scanning mode
 	printf("\n>>> APPLICATION PROFILE MODE...\n");
@@ -498,7 +508,6 @@ BOOL snapshotProfile()
 	prepareBlacklisting();
 
 	// LOOP SNAPSHOT PROCESS... until exited by user
-	size_t loopCount = 0;
 	do
 	{
 		// Get user input to determine life cycle state
@@ -513,12 +522,12 @@ BOOL snapshotProfile()
 
 		if (loopCount > 0)
 		{
+			SNAPSHOT ShotTemp;
 			// SHOT ONE (A copy of Snapshot2 from previous round)
 			printf("\n\n>>> SHOT 1\n");
 			printf("  > Copying previous snapshot...\n");
 			
 			// Copy snapshots and result comparison results
-			SNAPSHOT ShotTemp;
 			memcpy(&ShotTemp, &Shot1, sizeof(Shot1));     // backup Shot1 in ShotTemp
 			memcpy(&Shot1, &Shot2, sizeof(Shot2));        // copy Shot2 to Shot1
 			memcpy(&Shot2, &ShotTemp, sizeof(ShotTemp));  // copy ShotTemp (Shot1) to Shot2
@@ -537,8 +546,9 @@ BOOL snapshotProfile()
 			// Save snapshot1 if we are rebooting
 			if ((_tcscmp(lpszLifeCycleState, _T("reboot")) == 0))
 			{
+				LPTSTR lpszFileName;
 				printf("  > Saving snapshot 1...\n");
-				LPTSTR lpszFileName = MYALLOC0(MAX_PATH * sizeof(TCHAR));
+				lpszFileName = MYALLOC0(MAX_PATH * sizeof(TCHAR));
 				_tcscat(lpszFileName, lpszLifeCycleState);
 				_tcscat(lpszFileName, TEXT("-1.shot"));
 				//SaveShot(&Shot1, lpszFileName);
@@ -569,8 +579,9 @@ BOOL snapshotProfile()
 			// Save snapshot one
 			if ((_tcscmp(lpszLifeCycleState, _T("reboot")) == 0))
 			{
+				LPTSTR lpszFileName;
 				printf("  > Saving snapshot 1...\n");
-				LPTSTR lpszFileName = MYALLOC0(MAX_PATH * sizeof(TCHAR));
+				lpszFileName = MYALLOC0(MAX_PATH * sizeof(TCHAR));
 				_tcscat(lpszFileName, lpszLifeCycleState);
 				_tcscat(lpszFileName, TEXT("-2.shot"));
 				wprintf(L"  > Snapshot sucessfully saved as: %s\n", lpszFileName);
@@ -593,7 +604,7 @@ BOOL snapshotProfile()
 
 		// Insert comparison results to parent tag body
 		printf("\n>>> Generating output...\n");
-		size_t cchlpszLifeCycleState = _tcslen(lpszLifeCycleState);
+		cchlpszLifeCycleState = _tcslen(lpszLifeCycleState);
 		lpszAppState = MYALLOC0((cchlpszLifeCycleState + 1) * sizeof(TCHAR));
 		_tcscpy(lpszAppState, lpszLifeCycleState);
 		GenerateAPXMLReport();
@@ -635,6 +646,8 @@ BOOL snapshotProfile()
 BOOL snapshotProfileReboot()
 {
 	LPTSTR lpszLifeCycleState = TEXT("reboot");
+	WIN32_FIND_DATA fileData;
+	LPTSTR loadFileName1;
 
 	// CREATE AND LOAD BLACKLIST
 	// This is broken now. Because we no longer use a text blacklist.
@@ -646,14 +659,13 @@ BOOL snapshotProfileReboot()
 	printf("  > Load pre-reboot Shot1, capture Shot2, then finish APXML report...\n");
 
 	// Find the APXML file
-	WIN32_FIND_DATA fileData;
 	FindFirstFile(TEXT("*.apxml"), &fileData);
 	wprintf(L"  > Opening APXML Report: %s\n", fileData.cFileName);
 
 	// Open the APXML report and populate XML header
 	reOpenAPXMLReport(fileData.cFileName);
 
-	LPTSTR loadFileName1 = TEXT("LD1.shot");
+	loadFileName1 = TEXT("LD1.shot");
 	// SHOT ONE (shot1 is always loaded in profileReboot mode)
 	printf("\n\n>>> SHOT 1\n");
 	wprintf(L"  > Loading snapshot 1: %s\n", loadFileName1);

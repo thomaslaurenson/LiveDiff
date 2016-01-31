@@ -224,6 +224,9 @@ BOOL populateStaticBlacklist(LPTSTR lpszFileName)
 {
 	wchar_t line[MAX_PATH];
 	FILE *hFile;
+	wchar_t * key;
+	wchar_t * path;
+
 	hFile = _wfopen(lpszFileName, L"rb, ccs=UTF-16LE");
 
 	while (fgetws(line, MAX_PATH, hFile))
@@ -245,8 +248,10 @@ BOOL populateStaticBlacklist(LPTSTR lpszFileName)
 				continue;
 			}
 			
-			wchar_t * key = _tcstok(line, L"=");
-			wchar_t * path = _tcstok(NULL, L"=");
+			//wchar_t * key = _tcstok(line, L"=");
+			//wchar_t * path = _tcstok(NULL, L"=");
+			key = _tcstok(line, L"=");
+			path = _tcstok(NULL, L"=");
 
 			if (key == NULL || path == NULL) {
 				continue;
