@@ -26,6 +26,8 @@ along with LiveDiff.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "global.h"
 
+#include <math.h>
+
 // Workaround for older Platform/Windows SDKs (e.g. VS 6.0)
 #ifndef INVALID_FILE_ATTRIBUTES
 #define INVALID_FILE_ATTRIBUTES ((DWORD)-1)
@@ -232,6 +234,46 @@ LPMD5BLOCK md5Block(BYTE rgbFile[BLOCKSIZE], DWORD dwFileOffset, DWORD dwRunLeng
 }
 
 //-----------------------------------------------------------------
+// Block hashing: Histrogram generation
+// Code adapted from: https://rosettacode.org/wiki/Entropy#C
+//----------------------------------------------------------------- 
+int makehist(BYTE byte_count[], int *hist, int len) 
+{
+	int wherechar[256];
+	int i;
+	int histlen = 0;
+
+	for (i = 0; i < 256; i++)
+	{
+		wherechar[i] = -1;
+	}
+
+	for (i = 0; i<len; i++) 
+	{
+		if (wherechar[(int)byte_count[i]] == -1) {
+			wherechar[(int)byte_count[i]] = histlen;
+			histlen++;
+		}
+		hist[wherechar[(int)byte_count[i]]]++;
+	}
+
+	return histlen;
+}
+
+double entropy(int *hist, int histlen, int len) 
+{
+	int i;
+	DOUBLE H = 0;
+
+	for (i = 0; i<histlen; i++) 
+	{
+		H -= (DOUBLE)hist[i] / len*log2((DOUBLE)hist[i] / len);
+	}
+
+	return H;
+}
+
+//-----------------------------------------------------------------
 // Block hashing: From a file, calculate the SHA1 hash value in 4096 blocks
 //----------------------------------------------------------------- 
 LPMD5BLOCK CalculateMD5Blocks(LPTSTR FileName)
@@ -257,20 +299,42 @@ LPMD5BLOCK CalculateMD5Blocks(LPTSTR FileName)
 		printf(">>> ERROR: CalculateMD5Blocks: ERROR_OPENING_FILE");
 	}
 
-	// Read input file in 4096 byte blocks, and SHA1 hash each block
-	while (bResult = ReadFile(hashFile, rgbFile, BLOCKSIZE, &cbRead, NULL)) {
+	// Read input file in 512 byte blocks; calculate MD5 and entropy for each block
+	while (bResult = ReadFile(hashFile, rgbFile, BLOCKSIZE, &cbRead, NULL)) 
+	{
+		INT *hist;
+		INT histlen;
+		DOUBLE H;
+		LPTSTR lpszEntropy;
+
 		// If number of read bytes is 0, break loop due to EOF
 		if (0 == cbRead) {
 			break;
 		}
 
-		MD5Block = md5Block(rgbFile, dwFileOffset, cbRead); // THIS EDIT MAY CAUSE PROBLEMS?!
+		// Calculate the MD5 hash value of block
+		MD5Block = md5Block(rgbFile, dwFileOffset, cbRead);
 
+		// Calculate the entropy value of block
+		hist = MYALLOC0(cbRead * sizeof(INT));
+		histlen = makehist(rgbFile, hist, cbRead);
+		H = entropy(hist, histlen, cbRead);
+		//printf("%lf\n", H);
+
+		lpszEntropy = MYALLOC0(10 * sizeof(TCHAR));
+		swprintf_s(lpszEntropy, 10, L"%f", H);
+		printf("lpszEntropy %ws\n", lpszEntropy);
+
+		// Add entropy value to block structure
+		MD5Block->fEntropy = H;
+
+		// Check block structure was created
 		if (MD5Block == NULL) {
 			printf(">>> ERROR: CalculateMD5Blocks: Error creating MD5BLOCK");
 			break;
 		}
-
+		
+		// Add block to FILECONTENT
 		if (dwFileOffset == 0) {
 			firstMD5Block = MD5Block;
 		}

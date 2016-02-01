@@ -378,8 +378,10 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 			LPTSTR lpszByteRun;
 			LPTSTR lpszOffsetAttr;
 			LPTSTR lpszLengthAttr;
+			LPTSTR lpszEntropyAttr;
 			WCHAR lpszOffset[10];
 			WCHAR lpszLength[10];
+			WCHAR lpszEntropy[10]; // SIZE?!
 			LPTSTR lpszByteRunStart;
 			LPTSTR lpszHashDigestStart;
 			LPTSTR lpszHashDigestAttr;
@@ -396,9 +398,10 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 			// First, create the byte_run starting tag 
 			// e.g., <byte_run file_offset='45056' len='4096'>
 			//WCHAR lpszOffset[10];
-			swprintf_s(lpszOffset, 10, L"%d", dwOffset);
 			//WCHAR lpszLength[10];
+			swprintf_s(lpszOffset, 10, L"%d", dwOffset);
 			swprintf_s(lpszLength, 10, L"%d", dwLength);
+			swprintf_s(lpszEntropy, 10, L"%f", aMD5BLOCK->fEntropy); // PROBLEMATIC?!
 
 			lpszByteRun = MYALLOC0(9 * sizeof(TCHAR));
 			_tcscpy_s(lpszByteRun, 9, TEXT("byte_run"));
@@ -406,6 +409,8 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 			_tcscpy_s(lpszOffsetAttr, 12, TEXT("file_offset"));
 			lpszLengthAttr = MYALLOC0(4 * sizeof(TCHAR));
 			_tcscpy_s(lpszLengthAttr, 4, TEXT("len"));
+			lpszEntropyAttr = MYALLOC0(8 * sizeof(TCHAR));
+			_tcscpy_s(lpszEntropyAttr, 8, TEXT("entropy"));
 
 			chByteRunStart = (
 				(DWORD)_tcslen(lpszByteRun) +
@@ -413,21 +418,27 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 				(DWORD)_tcslen(lpszOffset) +
 				(DWORD)_tcslen(lpszLengthAttr) +
 				(DWORD)_tcslen(lpszLength) +
-				10 + 1); // 10 is for formatting, 1 for /0
+				(DWORD)_tcslen(lpszEntropyAttr) +
+				(DWORD)_tcslen(lpszEntropy) +
+				14 + 1); // 14 is for formatting, 1 for /0
 			lpszByteRunStart = MYALLOC0(chByteRunStart * sizeof(TCHAR));
-			_sntprintf(lpszByteRunStart, chByteRunStart, TEXT("<%s %s='%s' %s='%s'>"), lpszByteRun, lpszOffsetAttr, lpszOffset, lpszLengthAttr, lpszLength);
+			_sntprintf(lpszByteRunStart, chByteRunStart, TEXT("<%s %s='%s' %s='%s' %s='%s'>"), lpszByteRun, 
+				lpszOffsetAttr, lpszOffset, 
+				lpszLengthAttr, lpszLength,
+				lpszEntropyAttr, lpszEntropy);
 
 			// Free some memory
 			if (NULL != lpszByteRun) { MYFREE(lpszByteRun); }
 			if (NULL != lpszOffsetAttr) { MYFREE(lpszOffsetAttr); }
 			if (NULL != lpszLengthAttr) { MYFREE(lpszLengthAttr); }
+			if (NULL != lpszEntropyAttr) { MYFREE(lpszEntropyAttr); }
 
 			// Now, contstuct the hashdigest element
 			// e.g., <hashdigest type='md5'>094fa8892a82c5c8cf742a033c7c7a3e</hashdigest>
 			lpszHashDigestStart = MYALLOC0(11 * sizeof(TCHAR));
 			_tcscpy_s(lpszHashDigestStart, 11, TEXT("hashdigest"));
 			lpszHashDigestAttr = MYALLOC0(11 * sizeof(TCHAR));
-			_tcscpy_s(lpszHashDigestAttr, 11, TEXT("type='md5'"));
+			_tcscpy_s(lpszHashDigestAttr, 11, TEXT("type='MD5'")); // Captalised due to hashdb requirements
 
 			// Convert MD5Hash value (a BYTE) to lpszMD5HashValue (a string (LPTSTR))
 			sha1HashString = MYALLOC0((CALG_MD5 * 2 + 1) * sizeof(TCHAR));

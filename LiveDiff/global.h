@@ -150,6 +150,7 @@ typedef struct _KEYCONTENT KEYCONTENT, *LPKEYCONTENT;
 struct _MD5BLOCK
 {
 	BYTE bMD5Hash[16];
+	DOUBLE fEntropy;
 	struct _MD5BLOCK *lpNextMD5Block;
 };
 typedef struct _MD5BLOCK MD5BLOCK, *LPMD5BLOCK;
