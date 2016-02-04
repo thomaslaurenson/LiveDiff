@@ -21,7 +21,13 @@ To run LiveDiff and view the help menu use the following command (given that you
 
 `LiveDiff-1.0.0.exe -h`
 
-To capture and compare a system changes use LiveDiff without any arguments. This will capture one system snapshot, prompt you to perform an action (e.g., install an application), capture another snapshot, compare the two snapshots and output an APXML report. The snapshot process is looped until the user decide to exit the program.
+LiveDiff can be executed without any command line arguments to begin a looped snapshot collection and comparison cycle. The general operation is: 1) A snapshot is collected of the file system and Windows Registry; 2) An action is performed by the user (e.g., install an application); 3) Another snapshot is collected; 4) The before and after snapshots are compared and differential analysis performed to determine system level changes (e.g., files that have been created during application installation). This snapshot and comparison process is looped until the user decide to exit the program.
+
+To start a looped snapshot and comparison process, execute LiveDiff without any command line arguments:
+
+`LiveDiff-1.0.0.exe`
+
+LiveDiff has a variety of command line arguments to provide additional functionality when performing system-level reverse engineering. This functionality and the associated command line arguments are discussed in the following subsections.
 
 #### Dynamic Blacklisting
 
@@ -29,9 +35,56 @@ Dynamic blacklisting is a novel technique used to filter irrelevant file system 
 
 `LiveDiff-1.0.0.exe -d`
 
-LiveDiff can be used to collect and perform differencing on multiple chronological runs. This is known as profile mode, which generates an Application Profile XML (APXML) document. This can be invoked using the profile mode of operation:
+## Application Profile XMl (or APXML)
 
-`LiveDiff-1.0.0.exe –profile`
+Application Profile XML is a hybrid data abstraction which amalgamates the Digital Forensic XML (DFXML) and Registry XML (RegXML) forensic data abstractions. The overall structure of an APXML document displayed in the following code snippet:
+
+```
+<apxml>
+  <metadata/>
+  <creator/>
+   <!-- DFXML FileObjects -->
+   <!-- RegXML CellObjects -->
+   <rusage/>
+</apxml>
+```
+
+Basically, APXML stores file system entries as DFXML FileObjects and Windows Registry entries as RegXML CellObjects. Additional metadata, creator and rusage XML elements store application profile information.
+
+Example of a populated FileObject:
+
+```
+  <fileobject delta:new_file="1">
+    <filename>C:\Program Files\TrueCrypt\TrueCrypt Setup.exe</filename>
+    <filename_norm>%PROGRAMFILES%/TrueCrypt/TrueCrypt Setup.exe</filename_norm>
+    <basename>TrueCrypt Setup.exe</basename>
+    <basename_norm>TrueCrypt Setup.exe</basename_norm>
+    <filesize>3466248</filesize>
+    <alloc_inode>1</alloc_inode>
+    <alloc_name>1</alloc_name>
+    <meta_type>1</meta_type>
+    <hashdigest type="sha1">7689d038c76bd1df695d295c026961e50e4a62ea</hashdigest>
+    <app_name>TrueCrypt</app_name>
+    <app_state>install</app_state>
+  </fileobject>
+```
+
+Example of a populated CellObject:
+
+```
+  <cellobject delta:new_cell="1">
+    <cellpath>HKLM\SOFTWARE\Classes\.tc\(Default)</cellpath>
+    <cellpath_norm>SOFTWARE\Classes\.tc\(Default)</cellpath_norm>
+    <basename>(Default)</basename>
+    <name_type>v</name_type>
+    <alloc>1</alloc>
+    <data_type>REG_SZ</data_type>
+    <data>TrueCryptVolume</data>
+    <data_raw>54 00 72 00 75 00 65 00 43 00 72 00 79 00 70 00 74 00 56 00 6F 00 6C 00 75 00 6D 00 65 00 00 00</data_raw>
+    <app_name>TrueCrypt</app_name>
+    <app_state>install</app_state>
+  </cellobject>
+```
 
 ## Supported Windows Versions
 
