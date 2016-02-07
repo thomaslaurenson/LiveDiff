@@ -35,7 +35,13 @@ Dynamic blacklisting is a novel technique used to filter irrelevant file system 
 
 `LiveDiff-1.0.0.exe -d`
 
-## Application Profile XMl (or APXML)
+#### LiveDiff Best Practices
+
+LiveDiff is designed to be run on a minimal operating system, preferably a system which has just had a fresh installation without any additional applications installed. This is prefereable as the number of file system entries and Registry entries will only increase with system usage. An increase in the number of entries to process will understandably also increase tool processing time (decreasing computational efficiency).
+
+It is also recommended that LiveDiff be run in a virtualised environment. All testing and research using LiveDiff has been performed using Virtual Box (https://www.virtualbox.org/wiki/Downloads). Pre-installed virtual machines for a variety of Windows operating system versions are freely available from Microsoft (https://dev.windows.com/en-us/microsoft-edge/tools/vms/linux/) for both Windows and Linux platforms.
+
+## LiveDiff Output Format: Application Profile XML (APXML)
 
 Application Profile XML is a hybrid data abstraction which amalgamates the Digital Forensic XML (DFXML) and Registry XML (RegXML) forensic data abstractions. The overall structure of an APXML document displayed in the following code snippet:
 
@@ -49,9 +55,7 @@ Application Profile XML is a hybrid data abstraction which amalgamates the Digit
 </apxml>
 ```
 
-Basically, APXML stores file system entries as DFXML FileObjects and Windows Registry entries as RegXML CellObjects. Additional metadata, creator and rusage XML elements store application profile information.
-
-Example of a populated FileObject:
+Basically, APXML documents store file system entries as DFXML FileObjects and Windows Registry entries as RegXML CellObjects. Additional metadata, creator and rusage XML elements are also stored in the application profile. The following XML snippet displays an example of a populated FileObject for the TrueCrypt Windows installer file:
 
 ```
   <fileobject delta:new_file="1">
@@ -69,7 +73,7 @@ Example of a populated FileObject:
   </fileobject>
 ```
 
-Example of a populated CellObject:
+The following XML snippet displays an example of a populated CellObject for the TrueCrypt .tc file extension in the Windows Registry SOFTWARE hive file:
 
 ```
   <cellobject delta:new_cell="1">
@@ -91,6 +95,7 @@ Example of a populated CellObject:
 The following Windows operating system versions have been tested:
 
 1. Microsoft Windows 7 Service Pack 1 (32-bit)
+2. Microsoft Windows Vista Service Pack 1 (64-bit)
 
 ## License
 
