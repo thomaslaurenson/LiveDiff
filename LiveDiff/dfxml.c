@@ -368,7 +368,7 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 	if (performMD5BlockHashing)
 	{
 		DWORD dwOffset = 0;
-		DWORD dwLength = 512;
+		DWORD dwLength = dwHashBlockSize;
 		LPMD5BLOCK aMD5BLOCK;
 
 		xml_tagout(hFile, TEXT("byte_runs"), TEXT(""));
@@ -381,7 +381,7 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 			LPTSTR lpszEntropyAttr;
 			WCHAR lpszOffset[10];
 			WCHAR lpszLength[10];
-			WCHAR lpszEntropy[10]; // SIZE?!
+			WCHAR lpszEntropy[10];
 			LPTSTR lpszByteRunStart;
 			LPTSTR lpszHashDigestStart;
 			LPTSTR lpszHashDigestAttr;
@@ -397,11 +397,9 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 
 			// First, create the byte_run starting tag 
 			// e.g., <byte_run file_offset='45056' len='4096'>
-			//WCHAR lpszOffset[10];
-			//WCHAR lpszLength[10];
 			swprintf_s(lpszOffset, 10, L"%d", dwOffset);
 			swprintf_s(lpszLength, 10, L"%d", dwLength);
-			swprintf_s(lpszEntropy, 10, L"%f", aMD5BLOCK->fEntropy); // PROBLEMATIC?!
+			swprintf_s(lpszEntropy, 10, L"%f", aMD5BLOCK->fEntropy);
 
 			lpszByteRun = MYALLOC0(9 * sizeof(TCHAR));
 			_tcscpy_s(lpszByteRun, 9, TEXT("byte_run"));

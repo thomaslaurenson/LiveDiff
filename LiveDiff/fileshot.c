@@ -43,7 +43,6 @@ LPTSTR lpszExtDir;
 LPTSTR lpszWindowsDirName;
 
 // Set up buffer sizes for file hashing
-#define BLOCKSIZE	512
 #define BUFSIZE		1024
 #define SHA1LEN		20
 #define MD5LEN		16
@@ -178,6 +177,7 @@ LPTSTR CalculateSHA1(LPTSTR FileName)
 			_sntprintf(sha1HashString + (i * 2), 2, TEXT("%02x\0"), rgbHash[i]);
 		}
 	}
+
 	CryptDestroyHash(hHash);
 	CryptReleaseContext(hProv, 0);
 	CloseHandle(hashFile);
@@ -185,59 +185,10 @@ LPTSTR CalculateSHA1(LPTSTR FileName)
 }
 
 //-----------------------------------------------------------------
-// Block hashing: Calculate the MD5 hash value for a 4096 block
-//----------------------------------------------------------------- 
-LPMD5BLOCK md5Block(BYTE rgbFile[BLOCKSIZE], DWORD dwFileOffset, DWORD dwRunLength)
-{
-	HCRYPTPROV hProv = 0;
-	HCRYPTHASH hHash = 0;
-	BYTE rgbHash[MD5LEN];
-	DWORD cbHash = MD5LEN;
-	DWORD cbRead;
-	DWORD i;
-	LPMD5BLOCK MD5Block = NULL;
-
-	MD5Block = MYALLOC0(sizeof(MD5BLOCK));
-
-	// Get handle to the crypto provider
-	if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
-		printf(">>> ERROR: fileshot.c: md5Block: CryptAcquireContext");
-		return MD5Block;
-	}
-
-	if (!CryptCreateHash(hProv, CALG_MD5, 0, 0, &hHash)) {
-		printf(">>> ERROR: fileshot.c: md5Block: CryptCreateHash"); 
-		return MD5Block;
-	}
-
-	cbRead = dwRunLength;
-
-	if (!CryptHashData(hHash, rgbFile, cbRead, 0)) {
-		CryptReleaseContext(hProv, 0);
-		CryptDestroyHash(hHash);
-		printf(">>> ERROR: fileshot.c: md5Block: CryptHashData"); 
-		return MD5Block;
-	}
-
-	if (!CryptGetHashParam(hHash, HP_HASHVAL, rgbHash, &cbHash, 0)) {
-		printf(">>> ERROR: fileshot.c: md5Block: CryptGetHashParam");
-	}
-
-	i = 0;
-	while (i < MD5LEN) {
-		MD5Block->bMD5Hash[i] = rgbHash[i];
-		i++;
-	}
-
-	MD5Block->lpNextMD5Block = NULL;
-	return MD5Block;
-}
-
-//-----------------------------------------------------------------
 // Block hashing: Histrogram generation
 // Code adapted from: https://rosettacode.org/wiki/Entropy#C
 //----------------------------------------------------------------- 
-int makehist(BYTE byte_count[], int *hist, int len) 
+int makehist(BYTE byte_count[], int *hist, int len)
 {
 	int wherechar[256];
 	int i;
@@ -248,7 +199,7 @@ int makehist(BYTE byte_count[], int *hist, int len)
 		wherechar[i] = -1;
 	}
 
-	for (i = 0; i<len; i++) 
+	for (i = 0; i<len; i++)
 	{
 		if (wherechar[(int)byte_count[i]] == -1) {
 			wherechar[(int)byte_count[i]] = histlen;
@@ -260,12 +211,16 @@ int makehist(BYTE byte_count[], int *hist, int len)
 	return histlen;
 }
 
-double entropy(int *hist, int histlen, int len) 
+//-----------------------------------------------------------------
+// Block hashing: Generate entropy from historgram
+// Code adapted from: https://rosettacode.org/wiki/Entropy#C
+//-----------------------------------------------------------------
+double entropy(int *hist, int histlen, int len)
 {
 	int i;
 	DOUBLE H = 0;
 
-	for (i = 0; i<histlen; i++) 
+	for (i = 0; i<histlen; i++)
 	{
 		H -= (DOUBLE)hist[i] / len*log2((DOUBLE)hist[i] / len);
 	}
@@ -274,18 +229,81 @@ double entropy(int *hist, int histlen, int len)
 }
 
 //-----------------------------------------------------------------
-// Block hashing: From a file, calculate the SHA1 hash value in 4096 blocks
+// Block hashing: Calculate the MD5 hash value for a 4096 block
 //----------------------------------------------------------------- 
-LPMD5BLOCK CalculateMD5Blocks(LPTSTR FileName)
+LPMD5BLOCK md5Block(BYTE rgbFile[], DWORD dwFileOffset, DWORD dwRunLength)
+{
+	HCRYPTPROV hProv = 0;
+	HCRYPTHASH hHash = 0;
+	BYTE rgbHash[MD5LEN];
+	DWORD cbHash = MD5LEN;
+	DWORD cbRead;
+	LPMD5BLOCK MD5Block = NULL;
+	DWORD i;
+
+	// Allocate space for the MD5BLOCK
+	MD5Block = MYALLOC0(sizeof(MD5BLOCK));
+
+	// Set the data to read to the specified run length
+	cbRead = dwRunLength;
+
+	// Get handle to the crypto provider
+	if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
+		printf(">>> ERROR: fileshot.c: md5Block: CryptAcquireContext");
+		return MD5Block;
+	}
+
+	// Initiate hashing for stream of data using MD5 algorithm
+	if (!CryptCreateHash(hProv, CALG_MD5, 0, 0, &hHash)) {
+		printf(">>> ERROR: fileshot.c: md5Block: CryptCreateHash"); 
+		return MD5Block;
+	}
+
+	// Add the data to the hash object
+	if (!CryptHashData(hHash, rgbFile, cbRead, 0)) {
+		CryptReleaseContext(hProv, 0);
+		CryptDestroyHash(hHash);
+		printf(">>> ERROR: fileshot.c: md5Block: CryptHashData"); 
+		return MD5Block;
+	}
+
+	// Retrieve the hash
+	if (!CryptGetHashParam(hHash, HP_HASHVAL, rgbHash, &cbHash, 0)) {
+		printf(">>> ERROR: fileshot.c: md5Block: CryptGetHashParam");
+	}
+
+	// Copy the hash to the MD5BLOCK (stored as a BYTE)
+	i = 0;
+	while (i < MD5LEN) {
+		MD5Block->bMD5Hash[i] = rgbHash[i];
+		i++;
+	}
+
+	// Set next MD5Block to NULL for the current working MD5BLOCK
+	MD5Block->lpNextMD5Block = NULL;
+
+	// Return the MD5BLOCK (the first/father)
+	return MD5Block;
+}
+
+//-----------------------------------------------------------------
+// Block hashing: From a file, calculate the MD5 hash value for
+// a block size of 512 or 4096 bytes in length
+//----------------------------------------------------------------- 
+LPMD5BLOCK CalculateMD5Blocks(LPTSTR FileName, DWORD dwBlockSize)
 {
 	HANDLE hashFile = NULL;
 	BOOL bResult = FALSE;
 	DWORD cbRead = 0;
-	BYTE rgbFile[BLOCKSIZE];
 	CHAR rgbDigits[] = "0123456789abcdef";
 	DWORD dwFileOffset = 0;
+	BYTE* rgbFile;
 	LPMD5BLOCK MD5Block;
-	LPMD5BLOCK firstMD5Block = MYALLOC0(sizeof(LPMD5BLOCK));
+	LPMD5BLOCK firstMD5Block;
+
+	// Allocate space for the MD5BLOCK and actual block of data
+	firstMD5Block = MYALLOC0(sizeof(LPMD5BLOCK));
+	rgbFile = MYALLOC0(dwBlockSize);
 
 	// Open the file to perform hash
 	hashFile = CreateFile(FileName,
@@ -295,12 +313,14 @@ LPMD5BLOCK CalculateMD5Blocks(LPTSTR FileName)
 		OPEN_EXISTING,
 		FILE_FLAG_SEQUENTIAL_SCAN,
 		NULL);
+
+	// Check for an invalid file handle
 	if (INVALID_HANDLE_VALUE == hashFile) {
 		printf(">>> ERROR: CalculateMD5Blocks: ERROR_OPENING_FILE");
 	}
 
 	// Read input file in 512 byte blocks; calculate MD5 and entropy for each block
-	while (bResult = ReadFile(hashFile, rgbFile, BLOCKSIZE, &cbRead, NULL)) 
+	while (bResult = ReadFile(hashFile, rgbFile, dwBlockSize, &cbRead, NULL))
 	{
 		INT *hist;
 		INT histlen;
@@ -316,14 +336,14 @@ LPMD5BLOCK CalculateMD5Blocks(LPTSTR FileName)
 		MD5Block = md5Block(rgbFile, dwFileOffset, cbRead);
 
 		// Calculate the entropy value of block
+		// First get the histogram
 		hist = MYALLOC0(cbRead * sizeof(INT));
 		histlen = makehist(rgbFile, hist, cbRead);
 		H = entropy(hist, histlen, cbRead);
-		//printf("%lf\n", H);
 
+		// Second, calculate the actual block entropy
 		lpszEntropy = MYALLOC0(10 * sizeof(TCHAR));
 		swprintf_s(lpszEntropy, 10, L"%f", H);
-		printf("lpszEntropy %ws\n", lpszEntropy);
 
 		// Add entropy value to block structure
 		MD5Block->fEntropy = H;
@@ -359,6 +379,7 @@ LPMD5BLOCK CalculateMD5Blocks(LPTSTR FileName)
 VOID pushBlock(LPMD5BLOCK firstMD5Block, LPMD5BLOCK MD5Block)
 {
 	LPMD5BLOCK current = firstMD5Block;
+	
 	// Find the last MD5BLOCK in list
 	while (current->lpNextMD5Block != NULL) {
 		current = current->lpNextMD5Block;
@@ -862,8 +883,6 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 			else {
 				lpShot->stCounts.cDirsBlacklist++;
 			}
-
-
 			continue;
 		}
 
@@ -965,7 +984,7 @@ VOID GetFilesSnap(LPSNAPSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFather
 				}
 				if (performMD5BlockHashing)
 				{
-					LPMD5BLOCK theMD5Block = CalculateMD5Blocks(GetWholeFileName(lpFC, 4));
+					LPMD5BLOCK theMD5Block = CalculateMD5Blocks(GetWholeFileName(lpFC, 4), dwHashBlockSize);
 					lpFC->lpMD5Block = MYALLOC0(sizeof(MD5BLOCK));
 					lpFC->lpMD5Block = theMD5Block;
 				}

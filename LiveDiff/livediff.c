@@ -105,12 +105,6 @@ int wmain(DWORD argc, TCHAR *argv[])
 	// LOAD = load one or two snapshots, then compare (triggered with "--load" argument)
 	modeOfOperation = TEXT("PROFILE");
 
-	//LPTSTR lpszFileNamey = TEXT("CellXML-Registry-1.2.0.exe");
-	////LPTSTR lpszFileNamey = TEXT("AD.exe"); 
-	//printf("NAME: %ws\n", lpszFileNamey);
-	//LPMD5BLOCK block = CalculateMD5Blocks(lpszFileNamey);
-	//exit(1);
-
 	//-----------------------------------------------------------------
 	// If an argument is given (e.g., LiveDiff.exe -s, LiveDiff.exe -h) parse arguments
 	//-----------------------------------------------------------------
@@ -136,12 +130,12 @@ int wmain(DWORD argc, TCHAR *argv[])
 			printf("             -c Select hash algorithm [default NONE]\n");
 			printf("                  -c md5, -c sha1, -c md5,sha1\n");
 			printf("             -b Perform MD5 bloack hashing [default FALSE]\n\n");
-			printf("   Examples: LiveDiff.exe -c sha1 -b -p 2\n");
-			printf("             LiveDiff.exe -s -r blacklist-keys.txt -c md5\n");
+			printf("   Examples: LiveDiff.exe -c sha1 -p 2\n");
+			printf("             LiveDiff.exe -d -f static_blacklist.txt -c md5\n");
 			printf("             LiveDiff.exe -c md5,sha1\n");
-			printf("             LiveDiff.exe -c md5 -p 1\n");
-			printf("             LiveDiff.exe -f blacklist-dirs.txt\n");
-			printf("             LiveDiff.exe --load 1.shot 2.shot\n\n");
+			printf("             LiveDiff.exe -c md5 -p 1 -b 4096\n");
+			printf("             LiveDiff.exe -c md5,sha1 -b 512 -d\n");
+			printf("             LiveDiff.exe -f static_blacklist.txt\n\n");
 			return 0;
 		}
 		
@@ -420,7 +414,7 @@ BOOL snapshotLoad(LPTSTR loadFileName1, LPTSTR loadFileName2)
 		printf("\n\n>>> SHOT 1\n");
 		wprintf(L"  > Loading snapshot 1: %s\n", loadFileName1);
 		lpShot = &Shot1;
-		//LoadShot(lpShot, loadFileName1); // Fix too many parameters, fix by copying to LPTSTR?!
+		//LoadShot(lpShot, loadFileName1);
 		DisplayShotInfo(lpShot);
 	}
 	else

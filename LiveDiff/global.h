@@ -287,7 +287,7 @@ BOOL performSHA1Hashing;
 BOOL performSHA1BlockHashing;
 BOOL performMD5Hashing;
 BOOL performMD5BlockHashing;
-DWORD dwHashBlockSize;
+extern DWORD dwHashBlockSize;
 
 // Global blacklisting variables
 DWORD dwBlacklist;
@@ -339,8 +339,10 @@ VOID CompareHeadFiles(LPHEADFILE lpStartHF1, LPHEADFILE lpStartHF2);
 VOID ClearHeadFileMatchFlags(LPHEADFILE lpHF);
 VOID FreeAllHeadFiles(LPHEADFILE lpHF);
 BOOL DirChainMatch(LPHEADFILE lpHF1, LPHEADFILE lpHF2);
+
 VOID pushBlock(LPMD5BLOCK fatherMD5Block, LPMD5BLOCK MD5Block);
-LPMD5BLOCK CalculateMD5Blocks(LPTSTR FileName);
+LPMD5BLOCK CalculateMD5Blocks(LPTSTR FileName, DWORD dwBlockSize);
+LPMD5BLOCK md5Block(BYTE rgbFile[], DWORD dwFileOffset, DWORD dwRunLength);
 
 // blacklist.c global function
 void TrieCreate(trieNode_t **root);
