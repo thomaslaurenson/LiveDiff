@@ -212,6 +212,15 @@ int makehist(BYTE byte_count[], int *hist, int len)
 }
 
 //-----------------------------------------------------------------
+// Block hashing: Calculate Log2 of a value
+// Needed for Windows XP
+//-----------------------------------------------------------------
+double Log2(DOUBLE n)
+{
+	return log(n) / log(2);
+}
+
+//-----------------------------------------------------------------
 // Block hashing: Generate entropy from historgram
 // Code adapted from: https://rosettacode.org/wiki/Entropy#C
 //-----------------------------------------------------------------
@@ -1036,6 +1045,8 @@ VOID FileShot(LPSNAPSHOT lpShot)
 	lpszExtDir[MAX_PATH] = (TCHAR)'\0';
 	// Set the length of the Windows directory
 	cchExtDir = _tcslen(lpszExtDir);
+
+	//printf("%ws\n", lpszExtDir);
 
 	if (0 < cchExtDir) {
 		LPHEADFILE *lplpHFPrev;

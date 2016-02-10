@@ -118,12 +118,13 @@ LPTSTR xml_ampersand_check(LPTSTR value)
 {
 	wchar_t * pwc;
 	DWORD i;
-	size_t maxLen = (DWORD)((_tcslen(value) + 100) * sizeof(TCHAR));
-	wchar_t *line = MYALLOC0(maxLen * sizeof(TCHAR));
-	memcpy(line, value, maxLen);
-
-	//printf("\n\nSTART: %ws\n", line);
 	
+	// Determine line length, allocate sufficient memory then copy to new variable
+	size_t maxLen = (DWORD)((_tcslen(value) + 1) * sizeof(TCHAR));
+	wchar_t *line = MYALLOC0(maxLen * sizeof(TCHAR));
+	_tcscpy_s(line, maxLen, value);
+	
+	// Search for ampersand character
 	pwc = _tcschr(line, L'&');
 	while (pwc != NULL) 
 	{
@@ -131,7 +132,7 @@ LPTSTR xml_ampersand_check(LPTSTR value)
 		line = replace_string(line, pwc, i, TEXT("&amp;"));
 		pwc = _tcschr(line + i + 1, L'&');
 	}
-	//printf("FIXED: %ws\n", line);	
+	
 	return line;
 }
 
@@ -142,12 +143,12 @@ LPTSTR xml_apos_check(LPTSTR value)
 {
 	DWORD i;
 	wchar_t * pwc;
-	size_t maxLen = (DWORD)((_tcslen(value) + 100) * sizeof(TCHAR));
-	wchar_t *line = MYALLOC0(maxLen * sizeof(TCHAR));
-	memcpy(line, value, maxLen);
 
-	//printf("\n\nSTART: %ws\n", line);
-	
+	// Determine line length, allocate sufficient memory then copy to new variable
+	size_t maxLen = (DWORD)((_tcslen(value) + 1) * sizeof(TCHAR));
+	wchar_t *line = MYALLOC0(maxLen * sizeof(TCHAR));
+	_tcscpy_s(line, maxLen, value);
+
 	pwc = _tcschr(line, L'\'');
 	while (pwc != NULL) 
 	{
@@ -155,7 +156,7 @@ LPTSTR xml_apos_check(LPTSTR value)
 		line = replace_string(line, pwc, i, TEXT("&apos;"));
 		pwc = _tcschr(line + i + 1, L'\'');
 	}
-	//printf("FIXED: %ws\n", line);	
+
 	return line;
 }
 
@@ -166,12 +167,12 @@ LPTSTR xml_quote_check(LPTSTR value)
 {
 	DWORD i;
 	wchar_t * pwc;
-	size_t maxLen = (DWORD)((_tcslen(value) + 100) * sizeof(TCHAR));
-	wchar_t *line = MYALLOC0(maxLen * sizeof(TCHAR));
-	memcpy(line, value, maxLen);
 
-	//printf("\n\nSTART: %ws\n", line);
-	
+	// Determine line length, allocate sufficient memory then copy to new variable
+	size_t maxLen = (DWORD)((_tcslen(value) + 1) * sizeof(TCHAR));
+	wchar_t *line = MYALLOC0(maxLen * sizeof(TCHAR));
+	_tcscpy_s(line, maxLen, value);
+
 	pwc = _tcschr(line, L'"');
 	while (pwc != NULL) 
 	{
@@ -179,7 +180,7 @@ LPTSTR xml_quote_check(LPTSTR value)
 		line = replace_string(line, pwc, i, TEXT("&quot;"));
 		pwc = _tcschr(line + i + 1, L'"');
 	}
-	//printf("FIXED: %ws\n", line);	
+
 	return line;
 }
 
@@ -190,11 +191,12 @@ LPTSTR xml_gt_check(LPTSTR value)
 {
 	DWORD i;
 	wchar_t * pwc;
-	size_t maxLen = (DWORD)((_tcslen(value) + 100) * sizeof(TCHAR));
-	wchar_t *line = MYALLOC0(maxLen * sizeof(TCHAR));
-	memcpy(line, value, maxLen);
 
-	//printf("\n\nSTART: %ws\n", line);
+	// Determine line length, allocate sufficient memory then copy to new variable
+	size_t maxLen = (DWORD)((_tcslen(value) + 1) * sizeof(TCHAR));
+	wchar_t *line = MYALLOC0(maxLen * sizeof(TCHAR));
+	_tcscpy_s(line, maxLen, value);
+
 	pwc = _tcschr(line, L'>');
 	while (pwc != NULL) 
 	{
@@ -202,7 +204,7 @@ LPTSTR xml_gt_check(LPTSTR value)
 		line = replace_string(line, pwc, i, TEXT("&gt;"));
 		pwc = _tcschr(line + i + 1, L'>');
 	}
-	//printf("FIXED: %ws\n", line);	
+
 	return line;
 }
 
@@ -213,11 +215,12 @@ LPTSTR xml_lt_check(LPTSTR value)
 {
 	DWORD i;
 	wchar_t * pwc;
-	size_t maxLen = (DWORD)((_tcslen(value) + 100) * sizeof(TCHAR));
-	wchar_t *line = MYALLOC0(maxLen * sizeof(TCHAR));
-	memcpy(line, value, maxLen);
 
-	//printf("\n\nSTART: %ws\n", line);
+	// Determine line length, allocate sufficient memory then copy to new variable
+	size_t maxLen = (DWORD)((_tcslen(value) + 1) * sizeof(TCHAR));
+	wchar_t *line = MYALLOC0(maxLen * sizeof(TCHAR));
+	_tcscpy_s(line, maxLen, value);
+
 	pwc = _tcschr(line, L'<');
 	while (pwc != NULL) 
 	{
@@ -225,7 +228,7 @@ LPTSTR xml_lt_check(LPTSTR value)
 		line = replace_string(line, pwc, i, TEXT("&lt;"));
 		pwc = _tcschr(line + i + 1, L'<');
 	}
-	//printf("FIXED: %ws\n", line);	
+
 	return line;
 }
 
@@ -291,8 +294,6 @@ VOID PopulateFileObject(HANDLE hFile, DWORD nActionType, LPFILECONTENT lpCR)
 	LPTSTR lpszAlloc;
 	LPTSTR lpszsha1Hash;
 	LPTSTR lpszmd5Hash;
-
-
 
 	lpszFileObject = TEXT("fileobject");
 	// Write FileObject starting element with delta, determined by nActionType
@@ -554,6 +555,7 @@ VOID PopulateCellObject(HANDLE hFile, DWORD nActionType, LPCOMPRESULT lpCR)
 		LPTSTR lpszLastWriteTime;
 		SYSTEMTIME stLastWriteTime;
 
+		// Fetch the full path of Registry key entry
 		lpszCellPath = GetWholeKeyName(lpKC, fUseLongRegHead);
 
 		// Check the cellpath sting for special characters that need to be escaped
