@@ -25,6 +25,7 @@ using System.Threading;
 using System.Diagnostics;
 
 using CommandLine;
+using System.Collections.Generic;
 
 namespace LiveDiff
 {
@@ -65,7 +66,6 @@ namespace LiveDiff
                 Environment.Exit(1);
             });
 
-            //path = "C:\\Windows\\";
             Console.WriteLine(">>> Processing: {0}", path.ToString());
 
             // Start timer
@@ -77,24 +77,24 @@ namespace LiveDiff
                 Thread.Sleep(1000);
             }
 
-            // Stop timer
+            // Stop timer, and print elapsed time
             watch.Stop();
             Console.WriteLine("  > Time elapsed: {0}", watch.Elapsed);
 
             Console.WriteLine(">>> DIRECTORIES:");
-            Console.WriteLine("  > Processed dirs: {0}", FileSystemEnumerator.directories.Count.ToString());
             Console.WriteLine("  > directoryCounter: {0}", FileSystemEnumerator.directoryCounter);
-            Console.WriteLine("  > directoriesD: {0}", FileSystemEnumerator.directoriesD.Count);
+            Console.WriteLine("  > directories: {0}", FileSystemEnumerator.directoriesD.Count);
 
             Console.WriteLine(">>> FILES:");
-            Console.WriteLine("  > Processed files: {0}", FileSystemEnumerator.files.Count.ToString());
             Console.WriteLine("  > fileCounter: {0}", FileSystemEnumerator.fileCounter);
-            Console.WriteLine("  > filesD: {0}", FileSystemEnumerator.filesD.Count);
-            //foreach (var file in FileSystemEnumerator.files)
-            //{
-            //    Console.WriteLine(file.FullPath);
-            //    Console.WriteLine(file.FileSize);
-            //}
+            Console.WriteLine("  > files: {0}", FileSystemEnumerator.filesD.Count);
+
+            foreach (KeyValuePair<string, FileSystemEnumerator.FileInformation> kvp in FileSystemEnumerator.filesD)
+            {
+                Console.WriteLine(kvp.Key);
+                Console.WriteLine(kvp.Value.FileSize);
+                Console.WriteLine();
+            }
 
             Console.WriteLine(">>> FileSystemEnumerator finished.");
         }
