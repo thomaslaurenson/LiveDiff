@@ -20,40 +20,75 @@ along with this program.If not, see<http://www.gnu.org/licenses/>.
 */
 
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
+using System.Diagnostics;
+
+using CommandLine;
 
 namespace LiveDiff
 {
+    public class Options
+    {
+        [Option('t', "target", Required = true, HelpText = "Target directory to monitor.")]
+        public string TargetDirectory { get; set; }
+
+        [Option('v', "verbose", Default = 0, Required = false,
+            HelpText = "Log file verbosity level. 0 = Info, 1 = Debug, 2 = Trace")]
+        public int VerboseLevel { get; set; }
+    }
+
     class LiveDiff
     {
         static void Main(string[] args)
         {
-            Console.WriteLine(">>> FileSystemEnumerator starting...");
+            Console.WriteLine(".____    .__             ________  .__  _____  _____ ");
+            Console.WriteLine("|    |   |__|__  __ ____ \\______ \\ |__|/ ____\\/ ____\\");
+            Console.WriteLine("|    |   |  \\  \\/ // __ \\ |    |  \\|  \\   __\\   __\\ ");
+            Console.WriteLine("|    |___|  |\\   /\\  ___/ |    `   \\  ||  |   |  |   ");
+            Console.WriteLine("|_______ \\__| \\_/  \\___  >_______  /__||__|   |__|   ");
+            Console.WriteLine("        \\/             \\/        \\/                  ");
+            Console.WriteLine("                                  By Thomas Laurenson");
+            Console.WriteLine("                                  thomaslaurenson.com\n");
+
+            string path = null;
+
+            // Parse command line arguments
+            Parser.Default.ParseArguments<Options>(args)
+           .WithParsed<Options>(options =>
+            {
+                path = options.TargetDirectory;
+
+            })
+            .WithNotParsed<Options>(errors =>
+            {
+                Environment.Exit(1);
+            });
+
+            //path = "C:\\Windows\\";
+            Console.WriteLine(">>> Processing: {0}", path.ToString());
 
             // Start timer
             Stopwatch watch = new Stopwatch();
             watch.Start();
 
-            string path = "C:\\Windows\\";
-
             while (!FileSystemEnumerator.FindNextFilePInvokeRecursiveParalleled(path))
             {
-                // You can assume for all intents and purposes that drive C does exist and that you have access to it
-                // which will cause this sleep to not get called.
                 Thread.Sleep(1000);
             }
-            watch.Stop();
 
-            foreach (var file in FileSystemEnumerator.files)
-            {
-                Console.WriteLine(file.FullPath);
-                Console.WriteLine(file.FileSize);
-            }
+            // Stop timer
+            watch.Stop();
+            Console.WriteLine("  > Time elapsed: {0}", watch.Elapsed);
+
+            Console.WriteLine(">>> Processed dirs: {0}", FileSystemEnumerator.directories.Count.ToString());
+            Console.WriteLine(">>> Processed files: {0}", FileSystemEnumerator.files.Count.ToString());
+
+            //foreach (var file in FileSystemEnumerator.files)
+            //{
+            //    Console.WriteLine(file.FullPath);
+            //    Console.WriteLine(file.FileSize);
+            //}
 
             Console.WriteLine(">>> FileSystemEnumerator finished.");
             Console.ReadLine();
