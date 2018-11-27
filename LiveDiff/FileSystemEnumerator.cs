@@ -20,10 +20,12 @@ along with this program.If not, see<http://www.gnu.org/licenses/>.
 */
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace LiveDiff
 {
@@ -31,8 +33,12 @@ namespace LiveDiff
     {
         public static List<FileInformation> files = new List<FileInformation>();
         public static List<DirectoryInformation> directories = new List<DirectoryInformation>();
-        public static int fileCount = 0;
-        public static int directoryCount = 0;
+
+        public static ConcurrentDictionary<String, FileInformation> filesD = new ConcurrentDictionary<String, FileInformation>();
+        public static ConcurrentDictionary<String, DirectoryInformation> directoriesD = new ConcurrentDictionary<String, DirectoryInformation>();
+
+        public static int directoryCounter = 0;
+        public static int fileCounter = 0;
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern IntPtr FindFirstFileW(string lpFileName, out WIN32_FIND_DATAW lpFindFileData);
@@ -62,6 +68,13 @@ namespace LiveDiff
 
         static IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
 
+        /// <summary>
+        /// Processes all files/dirs in the top level target directory.
+        /// </summary>
+        /// <returns>
+        /// Success/Failure.
+        /// </returns>
+        /// <param name="path">An existing file system directory.</param>
         public static bool FindNextFilePInvokeRecursiveParalleled(string path)
         {
             List<FileInformation> fileList = new List<FileInformation>();
@@ -70,7 +83,7 @@ namespace LiveDiff
             object directoryListLock = new object();
             WIN32_FIND_DATAW findData;
             IntPtr findHandle = INVALID_HANDLE_VALUE;
-            List<Tuple<string, DateTime>> info = new List<Tuple<string, DateTime>>();
+
             try
             {
                 path = path.EndsWith(@"\") ? path : path + @"\";
@@ -79,27 +92,34 @@ namespace LiveDiff
                 {
                     do
                     {
-                        // Skip current directory and parent directory symbols that are returned.
+                        // Skip current directory (.) and parent directory (..) symbols
                         if (findData.cFileName != "." && findData.cFileName != "..")
                         {
                             // Check if this is a directory and not a symbolic link since symbolic links 
-                            // could lead to repeated files and folders as well as infinite loops.
+                            // could lead to repeated files and folders as well as infinite loops
                             bool isDirectory = findData.dwFileAttributes.HasFlag(FileAttributes.Directory);
                             bool isSymbolicLink = findData.dwFileAttributes.HasFlag(FileAttributes.ReparsePoint);
                             if (isDirectory && !isSymbolicLink)
                             {
+                                // Process directory
                                 DirectoryInformation directoryInformation = populateDirectoryInformation(findData, path);
                                 directoryList.Add(directoryInformation);
-                                directoryCount++;
+                                directoriesD.TryAdd(directoryInformation.FullPath, directoryInformation);
+                                // Increase directory count
+                                Interlocked.Increment(ref directoryCounter);
                             }
                             else if (!findData.dwFileAttributes.HasFlag(FileAttributes.Directory))
                             {
+                                // Process file
                                 FileInformation fileInformation = populateFileInformation(findData, path);
                                 fileList.Add(fileInformation);
-                                fileCount++;
+                                filesD.TryAdd(fileInformation.FullPath, fileInformation);
+                                // Increase file count
+                                Interlocked.Increment(ref fileCounter);
                             }
                         }
                     }
+                    // Process any subdirectories
                     while (FindNextFile(findHandle, out findData));
                     directoryList.AsParallel().ForAll(x =>
                     {
@@ -121,7 +141,8 @@ namespace LiveDiff
             }
             catch (Exception exception)
             {
-                Console.WriteLine("Caught exception while trying to enumerate a directory. {0}", exception.ToString());
+                Console.WriteLine("Caught exception while trying to enumerate a directory...");
+                Console.WriteLine(exception.ToString());
                 if (findHandle != INVALID_HANDLE_VALUE) FindClose(findHandle);
                 files = null;
                 directories = null;
@@ -133,6 +154,15 @@ namespace LiveDiff
             return true;
         }
 
+        /// <summary>
+        /// Recursively processes subdirectories and the contained files.
+        /// </summary>
+        /// <returns>
+        /// Success/Failure.
+        /// </returns>
+        /// <param name="path">An existing file system directory.</param>
+        /// <param name="files">List of files to process.</param>
+        /// <param name="directories">List of directories to process.</param>
         static bool FindNextFilePInvokeRecursive(string path, 
             out List<FileInformation> files, 
             out List<DirectoryInformation> directories)
@@ -141,7 +171,7 @@ namespace LiveDiff
             List<DirectoryInformation> directoryList = new List<DirectoryInformation>();
             WIN32_FIND_DATAW findData;
             IntPtr findHandle = INVALID_HANDLE_VALUE;
-            List<Tuple<string, DateTime>> info = new List<Tuple<string, DateTime>>();
+
             try
             {
                 findHandle = FindFirstFileW(path + @"\*", out findData);
@@ -149,7 +179,7 @@ namespace LiveDiff
                 {
                     do
                     {
-                        // Skip current directory and parent directory symbols that are returned.
+                        // Skip current directory (.) and parent directory (..) symbols
                         if (findData.cFileName != "." && findData.cFileName != "..")
                         {
                             string fullPath = path + @"\" + findData.cFileName;
@@ -166,7 +196,9 @@ namespace LiveDiff
                                 // Add the directory to the list
                                 DirectoryInformation directoryInformation = populateDirectoryInformation(findData, path);
                                 directoryList.Add(directoryInformation);
-                                directoryCount++;
+                                directoriesD.TryAdd(directoryInformation.FullPath, directoryInformation);
+                                // Increase directory count
+                                Interlocked.Increment(ref directoryCounter);
 
                                 // Initialize lists for subfiles and subdirectories
                                 List<FileInformation> subDirectoryFileList = new List<FileInformation>();
@@ -183,7 +215,9 @@ namespace LiveDiff
                                 // Add the file to the list
                                 FileInformation fileInformation = populateFileInformation(findData, path);
                                 fileList.Add(fileInformation);
-                                fileCount++;
+                                filesD.TryAdd(fileInformation.FullPath, fileInformation);
+                                // Increase file count
+                                Interlocked.Increment(ref fileCounter);
                             }
                         }
                     }
@@ -192,7 +226,8 @@ namespace LiveDiff
             }
             catch (Exception exception)
             {
-                Console.WriteLine("Caught exception while trying to enumerate a directory. {0}", exception.ToString());
+                Console.WriteLine("Caught exception while trying to enumerate a directory...");
+                Console.WriteLine(exception.ToString());
                 if (findHandle != INVALID_HANDLE_VALUE) FindClose(findHandle);
                 files = null;
                 directories = null;

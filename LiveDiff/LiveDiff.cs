@@ -81,9 +81,15 @@ namespace LiveDiff
             watch.Stop();
             Console.WriteLine("  > Time elapsed: {0}", watch.Elapsed);
 
-            Console.WriteLine(">>> Processed dirs: {0}", FileSystemEnumerator.directories.Count.ToString());
-            Console.WriteLine(">>> Processed files: {0}", FileSystemEnumerator.files.Count.ToString());
+            Console.WriteLine(">>> DIRECTORIES:");
+            Console.WriteLine("  > Processed dirs: {0}", FileSystemEnumerator.directories.Count.ToString());
+            Console.WriteLine("  > directoryCounter: {0}", FileSystemEnumerator.directoryCounter);
+            Console.WriteLine("  > directoriesD: {0}", FileSystemEnumerator.directoriesD.Count);
 
+            Console.WriteLine(">>> FILES:");
+            Console.WriteLine("  > Processed files: {0}", FileSystemEnumerator.files.Count.ToString());
+            Console.WriteLine("  > fileCounter: {0}", FileSystemEnumerator.fileCounter);
+            Console.WriteLine("  > filesD: {0}", FileSystemEnumerator.filesD.Count);
             //foreach (var file in FileSystemEnumerator.files)
             //{
             //    Console.WriteLine(file.FullPath);
@@ -91,7 +97,6 @@ namespace LiveDiff
             //}
 
             Console.WriteLine(">>> FileSystemEnumerator finished.");
-            Console.ReadLine();
         }
     }
 }
