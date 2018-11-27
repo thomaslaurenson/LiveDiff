@@ -31,6 +31,8 @@ namespace LiveDiff
     {
         public static List<FileInformation> files = new List<FileInformation>();
         public static List<DirectoryInformation> directories = new List<DirectoryInformation>();
+        public static int fileCount = 0;
+        public static int directoryCount = 0;
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern IntPtr FindFirstFileW(string lpFileName, out WIN32_FIND_DATAW lpFindFileData);
@@ -80,15 +82,21 @@ namespace LiveDiff
                         // Skip current directory and parent directory symbols that are returned.
                         if (findData.cFileName != "." && findData.cFileName != "..")
                         {
-                            string fullPath = path + findData.cFileName;
-                            // Check if this is a directory and not a symbolic link since symbolic links could lead to repeated files and folders as well as infinite loops.
-                            if (findData.dwFileAttributes.HasFlag(FileAttributes.Directory) && !findData.dwFileAttributes.HasFlag(FileAttributes.ReparsePoint))
+                            // Check if this is a directory and not a symbolic link since symbolic links 
+                            // could lead to repeated files and folders as well as infinite loops.
+                            bool isDirectory = findData.dwFileAttributes.HasFlag(FileAttributes.Directory);
+                            bool isSymbolicLink = findData.dwFileAttributes.HasFlag(FileAttributes.ReparsePoint);
+                            if (isDirectory && !isSymbolicLink)
                             {
-                                directoryList.Add(new DirectoryInformation { FullPath = fullPath });
+                                DirectoryInformation directoryInformation = populateDirectoryInformation(findData, path);
+                                directoryList.Add(directoryInformation);
+                                directoryCount++;
                             }
                             else if (!findData.dwFileAttributes.HasFlag(FileAttributes.Directory))
                             {
-                                fileList.Add(new FileInformation { FullPath = fullPath });
+                                FileInformation fileInformation = populateFileInformation(findData, path);
+                                fileList.Add(fileInformation);
+                                fileCount++;
                             }
                         }
                     }
@@ -125,7 +133,9 @@ namespace LiveDiff
             return true;
         }
 
-        static bool FindNextFilePInvokeRecursive(string path, out List<FileInformation> files, out List<DirectoryInformation> directories)
+        static bool FindNextFilePInvokeRecursive(string path, 
+            out List<FileInformation> files, 
+            out List<DirectoryInformation> directories)
         {
             List<FileInformation> fileList = new List<FileInformation>();
             List<DirectoryInformation> directoryList = new List<DirectoryInformation>();
@@ -143,21 +153,37 @@ namespace LiveDiff
                         if (findData.cFileName != "." && findData.cFileName != "..")
                         {
                             string fullPath = path + @"\" + findData.cFileName;
-                            // Check if this is a directory and not a symbolic link since symbolic links could lead to repeated files and folders as well as infinite loops.
-                            if (findData.dwFileAttributes.HasFlag(FileAttributes.Directory) && !findData.dwFileAttributes.HasFlag(FileAttributes.ReparsePoint))
+
+                            // TODO: Could use a default object, what is the processing performance tradeoff here?
+                            //FileInfo fi1 = new FileInfo(fullPath);                           
+
+                            // Check if this is a directory and not a symbolic link since symbolic links 
+                            // could lead to repeated files and folders as well as infinite loops.
+                            bool isDirectory = findData.dwFileAttributes.HasFlag(FileAttributes.Directory);
+                            bool isSymbolicLink = findData.dwFileAttributes.HasFlag(FileAttributes.ReparsePoint);
+                            if (isDirectory && !isSymbolicLink)
                             {
-                                directoryList.Add(new DirectoryInformation { FullPath = fullPath });
+                                // Add the directory to the list
+                                DirectoryInformation directoryInformation = populateDirectoryInformation(findData, path);
+                                directoryList.Add(directoryInformation);
+                                directoryCount++;
+
+                                // Initialize lists for subfiles and subdirectories
                                 List<FileInformation> subDirectoryFileList = new List<FileInformation>();
                                 List<DirectoryInformation> subDirectoryDirectoryList = new List<DirectoryInformation>();
                                 if (FindNextFilePInvokeRecursive(fullPath, out subDirectoryFileList, out subDirectoryDirectoryList))
                                 {
+                                    // Recusive call, and add results to the list
                                     fileList.AddRange(subDirectoryFileList);
                                     directoryList.AddRange(subDirectoryDirectoryList);
                                 }
                             }
-                            else if (!findData.dwFileAttributes.HasFlag(FileAttributes.Directory))
+                            else if (!isDirectory)
                             {
-                                fileList.Add(new FileInformation { FullPath = fullPath });
+                                // Add the file to the list
+                                FileInformation fileInformation = populateFileInformation(findData, path);
+                                fileList.Add(fileInformation);
+                                fileCount++;
                             }
                         }
                     }
@@ -181,13 +207,56 @@ namespace LiveDiff
         public class FileInformation
         {
             public string FullPath;
+            public int FileSize;
             public DateTime LastWriteTime;
+            public DateTime LastAccessTime;
+            public DateTime CreationTime;
+        }
+
+        private static FileInformation populateFileInformation(WIN32_FIND_DATAW findData, String path)
+        {
+            FileInformation fileInformation = new FileInformation
+            {
+                FullPath = path + findData.cFileName,
+                FileSize = findData.nFileSizeHigh,
+                LastWriteTime = findData.ftLastWriteTime.ToDateTime(),
+                LastAccessTime = findData.ftLastAccessTime.ToDateTime(),
+                CreationTime = findData.ftCreationTime.ToDateTime()
+            };
+            return fileInformation;
         }
 
         public class DirectoryInformation
         {
             public string FullPath;
+            public int FileSize;
             public DateTime LastWriteTime;
+            public DateTime LastAccessTime;
+            public DateTime CreationTime;
+        }
+
+        private static DirectoryInformation populateDirectoryInformation(WIN32_FIND_DATAW findData, String path)
+        {
+            DirectoryInformation directoryInformation = new DirectoryInformation
+            {
+                FullPath = path + findData.cFileName,
+                FileSize = findData.nFileSizeHigh,
+                LastWriteTime = findData.ftLastWriteTime.ToDateTime(),
+                LastAccessTime = findData.ftLastAccessTime.ToDateTime(),
+                CreationTime = findData.ftCreationTime.ToDateTime()
+            };
+            return directoryInformation;
+        }
+    }
+
+    public static class FILETIMEExtensions
+    {
+        public static DateTime ToDateTime(this System.Runtime.InteropServices.ComTypes.FILETIME time)
+        {
+            ulong high = (ulong)time.dwHighDateTime;
+            ulong low = (ulong)time.dwLowDateTime;
+            long fileTime = (long)((high << 32) + low);
+            return DateTime.FromFileTimeUtc(fileTime);
         }
     }
 }

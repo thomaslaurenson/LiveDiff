@@ -49,7 +49,14 @@ namespace LiveDiff
             }
             watch.Stop();
 
+            foreach (var file in FileSystemEnumerator.files)
+            {
+                Console.WriteLine(file.FullPath);
+                Console.WriteLine(file.FileSize);
+            }
+
             Console.WriteLine(">>> FileSystemEnumerator finished.");
+            Console.ReadLine();
         }
     }
 }
