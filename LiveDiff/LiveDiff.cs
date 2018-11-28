@@ -68,33 +68,30 @@ namespace LiveDiff
 
             Console.WriteLine(">>> Processing: {0}", path.ToString());
 
-            // Start timer
+            // SNAPSHOT ONE:
+
             Stopwatch watch = new Stopwatch();
             watch.Start();
-
-            while (!FileSystemEnumerator.FindNextFilePInvokeRecursiveParalleled(path))
+            
+            // Enumerate the file system
+            FileSystemSnapshot fsSnapshot1 = new FileSystemSnapshot(path);
+            while (!fsSnapshot1.GetFileSystemSnapshot(path))
             {
                 Thread.Sleep(1000);
             }
-
-            // Stop timer, and print elapsed time
+            
             watch.Stop();
             Console.WriteLine("  > Time elapsed: {0}", watch.Elapsed);
 
-            Console.WriteLine(">>> DIRECTORIES:");
-            Console.WriteLine("  > directoryCounter: {0}", FileSystemEnumerator.directoryCounter);
-            Console.WriteLine("  > directories: {0}", FileSystemEnumerator.directoriesD.Count);
+            Console.WriteLine("  > Dir count: {0}", fsSnapshot1.AllDirs.Count);
+            Console.WriteLine("  > Fis count: {0}", fsSnapshot1.AllFiles.Count);
 
-            Console.WriteLine(">>> FILES:");
-            Console.WriteLine("  > fileCounter: {0}", FileSystemEnumerator.fileCounter);
-            Console.WriteLine("  > files: {0}", FileSystemEnumerator.filesD.Count);
-
-            foreach (KeyValuePair<string, FileSystemEnumerator.FileInformation> kvp in FileSystemEnumerator.filesD)
-            {
-                Console.WriteLine(kvp.Key);
-                Console.WriteLine(kvp.Value.FileSize);
-                Console.WriteLine();
-            }
+            //foreach (KeyValuePair<string, FileSystemEnumerator.FileInformation> kvp in FileSystemEnumerator.filesD)
+            //{
+            //    Console.WriteLine(kvp.Key);
+            //    Console.WriteLine(kvp.Value.FileSize);
+            //    Console.WriteLine();
+            //}
 
             Console.WriteLine(">>> FileSystemEnumerator finished.");
         }

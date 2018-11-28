@@ -29,15 +29,26 @@ using System.Threading;
 
 namespace LiveDiff
 {
-    class FileSystemEnumerator
+    class FileSystemSnapshot
     {
-        public static ConcurrentDictionary<String, FileInformation> filesD = new ConcurrentDictionary<String, FileInformation>();
-        public static ConcurrentDictionary<String, DirectoryInformation> directoriesD = new ConcurrentDictionary<String, DirectoryInformation>();
+        public FileSystemSnapshot(String path)
+        {
+            RootPath = path;
+            AllFiles = new ConcurrentDictionary<String, FileInformation>();
+            AllDirs = new ConcurrentDictionary<String, FileInformation>();
+            int dirCounter = 0;
+            int fileCounter = 0;
+        }
 
-        // http://cc.davelozinski.com/c-sharp/dictionary-vs-concurrentdictionary
+        public string RootPath { get; set; }
 
-        public static int directoryCounter = 0;
-        public static int fileCounter = 0;
+        public ConcurrentDictionary<String, FileInformation> AllFiles { get; set; }
+
+        public ConcurrentDictionary<String, FileInformation> AllDirs { get; set; }
+
+        public int dirCounter { get; set; }
+
+        public int fileCounter { get; set; }
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern IntPtr FindFirstFileW(string lpFileName, out WIN32_FIND_DATAW lpFindFileData);
@@ -74,7 +85,7 @@ namespace LiveDiff
         /// Success/Failure.
         /// </returns>
         /// <param name="path">An existing file system directory.</param>
-        public static bool FindNextFilePInvokeRecursiveParalleled(string path)
+        public bool GetFileSystemSnapshot(string path)
         {
             List<String> directoryList = new List<String>();
             WIN32_FIND_DATAW findData;
@@ -103,18 +114,18 @@ namespace LiveDiff
                                 //string fullPath = path + findData.cFileName;
                                 directoryList.Add(fullPath);
                                 // Query file system entry, populate and append to dict
-                                DirectoryInformation directoryInformation = populateDirectoryInformation(findData, path);
-                                directoriesD.TryAdd(directoryInformation.FullPath, directoryInformation);
+                                FileInformation directoryInformation = PopulateFileInformation(findData, path);
+                                AllDirs.TryAdd(directoryInformation.FullPath, directoryInformation);
                                 // Increase directory count
-                                Interlocked.Increment(ref directoryCounter);
+                                //Interlocked.Increment(ref dirCounter);
                             }
                             else if (!isDirectory)
                             {
                                 // Process file
-                                FileInformation fileInformation = populateFileInformation(findData, path);
-                                filesD.TryAdd(fileInformation.FullPath, fileInformation);
+                                FileInformation fileInformation = PopulateFileInformation(findData, path);
+                                AllFiles.TryAdd(fileInformation.FullPath, fileInformation);
                                 // Increase file count
-                                Interlocked.Increment(ref fileCounter);
+                                //Interlocked.Increment(ref fileCounter);
                             }
                         }
                     }
@@ -122,9 +133,7 @@ namespace LiveDiff
                     while (FindNextFile(findHandle, out findData));
                     directoryList.AsParallel().ForAll(x =>
                     {
-                        List<FileInformation> subDirectoryFileList = new List<FileInformation>();
-                        List<DirectoryInformation> subDirectoryDirectoryList = new List<DirectoryInformation>();
-                        if (FindNextFilePInvokeRecursive(x))
+                        if (FindNextFileRecursive(x))
                         {
 
                         }
@@ -151,7 +160,7 @@ namespace LiveDiff
         /// <param name="path">An existing file system directory.</param>
         /// <param name="files">List of files to process.</param>
         /// <param name="directories">List of directories to process.</param>
-        static bool FindNextFilePInvokeRecursive(string path)
+        private bool FindNextFileRecursive(string path)
         {
             List<String> directoryList = new List<String>();
             WIN32_FIND_DATAW findData;
@@ -178,16 +187,13 @@ namespace LiveDiff
                                 // Add the directory to the list
                                 directoryList.Add(fullPath);
 
-                                DirectoryInformation directoryInformation = populateDirectoryInformation(findData, path);
-                                directoriesD.TryAdd(directoryInformation.FullPath, directoryInformation);
+                                FileInformation directoryInformation = PopulateFileInformation(findData, path);
+                                AllDirs.TryAdd(directoryInformation.FullPath, directoryInformation);
 
                                 // Increase directory count
-                                Interlocked.Increment(ref directoryCounter);
+                                //Interlocked.Increment(ref dirCounter);
 
-                                // Initialize lists for subfiles and subdirectories
-                                List<FileInformation> subDirectoryFileList = new List<FileInformation>();
-                                List<DirectoryInformation> subDirectoryDirectoryList = new List<DirectoryInformation>();
-                                if (FindNextFilePInvokeRecursive(fullPath))
+                                if (FindNextFileRecursive(fullPath))
                                 {
 
                                 }
@@ -195,10 +201,10 @@ namespace LiveDiff
                             else if (!isDirectory)
                             {
                                 // Add the file to the list
-                                FileInformation fileInformation = populateFileInformation(findData, path);
-                                filesD.TryAdd(fileInformation.FullPath, fileInformation);
+                                FileInformation fileInformation = PopulateFileInformation(findData, path);
+                                AllFiles.TryAdd(fileInformation.FullPath, fileInformation);
                                 // Increase file count
-                                Interlocked.Increment(ref fileCounter);
+                                //Interlocked.Increment(ref fileCounter);
                             }
                         }
                     }
@@ -226,7 +232,7 @@ namespace LiveDiff
             public string FullPath;
         }
 
-        private static FileInformation populateFileInformation(WIN32_FIND_DATAW findData, String path)
+        private static FileInformation PopulateFileInformation(WIN32_FIND_DATAW findData, String path)
         {
             FileInformation fileInformation = new FileInformation();
 
@@ -241,28 +247,6 @@ namespace LiveDiff
             fileInformation.FullPath = path + findData.cFileName;
 
             return fileInformation;
-        }
-
-        public class DirectoryInformation
-        {
-            public string FullPath;
-            public int FileSize;
-            public DateTime LastWriteTime;
-            public DateTime LastAccessTime;
-            public DateTime CreationTime;
-        }
-
-        private static DirectoryInformation populateDirectoryInformation(WIN32_FIND_DATAW findData, String path)
-        {
-            DirectoryInformation directoryInformation = new DirectoryInformation
-            {
-                FullPath = path + findData.cFileName,
-                FileSize = findData.nFileSizeHigh,
-                LastWriteTime = findData.ftLastWriteTime.ToDateTime(),
-                LastAccessTime = findData.ftLastAccessTime.ToDateTime(),
-                CreationTime = findData.ftCreationTime.ToDateTime()
-            };
-            return directoryInformation;
         }
     }
 
