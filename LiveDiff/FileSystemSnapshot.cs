@@ -26,6 +26,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace LiveDiff
 {
@@ -36,8 +37,7 @@ namespace LiveDiff
             RootPath = path;
             AllFiles = new ConcurrentDictionary<String, FileInformation>();
             AllDirs = new ConcurrentDictionary<String, FileInformation>();
-            int dirCounter = 0;
-            int fileCounter = 0;
+            AllFSEntries = new ConcurrentDictionary<String, FileInformation>();
         }
 
         public string RootPath { get; set; }
@@ -46,9 +46,11 @@ namespace LiveDiff
 
         public ConcurrentDictionary<String, FileInformation> AllDirs { get; set; }
 
-        public int dirCounter { get; set; }
+        public ConcurrentDictionary<String, FileInformation> AllFSEntries { get; set; }
 
-        public int fileCounter { get; set; }
+        int DirCounter = 0;
+
+        int FileCounter = 0;
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern IntPtr FindFirstFileW(string lpFileName, out WIN32_FIND_DATAW lpFindFileData);
@@ -116,16 +118,20 @@ namespace LiveDiff
                                 // Query file system entry, populate and append to dict
                                 FileInformation directoryInformation = PopulateFileInformation(findData, path);
                                 AllDirs.TryAdd(directoryInformation.FullPath, directoryInformation);
+                                AllFSEntries.TryAdd(directoryInformation.FullPath, directoryInformation);
                                 // Increase directory count
-                                //Interlocked.Increment(ref dirCounter);
+                                Interlocked.Increment(ref DirCounter);
+                                Console.Write("\rDirs: {0} Files: {1}", DirCounter, FileCounter);
                             }
                             else if (!isDirectory)
                             {
                                 // Process file
                                 FileInformation fileInformation = PopulateFileInformation(findData, path);
                                 AllFiles.TryAdd(fileInformation.FullPath, fileInformation);
+                                AllFSEntries.TryAdd(fileInformation.FullPath, fileInformation);
                                 // Increase file count
-                                //Interlocked.Increment(ref fileCounter);
+                                Interlocked.Increment(ref FileCounter);
+                                Console.Write("\rDirs: {0} Files: {1}", DirCounter, FileCounter);
                             }
                         }
                     }
@@ -189,9 +195,11 @@ namespace LiveDiff
 
                                 FileInformation directoryInformation = PopulateFileInformation(findData, path);
                                 AllDirs.TryAdd(directoryInformation.FullPath, directoryInformation);
+                                AllFSEntries.TryAdd(directoryInformation.FullPath, directoryInformation);
 
                                 // Increase directory count
-                                //Interlocked.Increment(ref dirCounter);
+                                Interlocked.Increment(ref DirCounter);
+                                Console.Write("\rDirs: {0} Files: {1}", DirCounter, FileCounter);
 
                                 if (FindNextFileRecursive(fullPath))
                                 {
@@ -203,8 +211,10 @@ namespace LiveDiff
                                 // Add the file to the list
                                 FileInformation fileInformation = PopulateFileInformation(findData, path);
                                 AllFiles.TryAdd(fileInformation.FullPath, fileInformation);
+                                AllFSEntries.TryAdd(fileInformation.FullPath, fileInformation);
                                 // Increase file count
-                                //Interlocked.Increment(ref fileCounter);
+                                Interlocked.Increment(ref FileCounter);
+                                Console.Write("\rDirs: {0} Files: {1}", DirCounter, FileCounter);
                             }
                         }
                     }
@@ -247,6 +257,60 @@ namespace LiveDiff
             fileInformation.FullPath = path + findData.cFileName;
 
             return fileInformation;
+        }
+
+        public static string CompareFileSystemSnapshots(FileSystemSnapshot fsSnapshot1, FileSystemSnapshot fsSnapshot2)
+        {
+            // Determine new files
+            Parallel.ForEach (fsSnapshot2.AllFSEntries, data =>
+            {
+                // Determine if any key file system entries have been added
+                // Logic: Entry is present in Snapshot1 and not present in Snapshot2
+                if (!fsSnapshot1.AllFSEntries.ContainsKey(data.Key))
+                {
+                    Console.WriteLine("New entry found: {0}", data.Key);
+                }
+            });
+
+            // Determine removed files
+            Parallel.ForEach(fsSnapshot1.AllFSEntries, data =>
+            {
+                // Determine if any key file system entries have been removed
+                // Logic: Entry is present in Snapshot2 and not present in Snapshot1
+                if (!fsSnapshot2.AllFSEntries.ContainsKey(data.Key))
+                {
+                    Console.WriteLine("Removed entry found: {0}", data.Key);
+                }
+            });
+
+            // Determine modified files (size, modified date, access date)
+            Parallel.ForEach(fsSnapshot2.AllFSEntries, data =>
+            {
+                // Determine if any key file system entries have been removed
+                // Logic: Entry is present in Snapshot2 and not present in Snapshot1
+                if (fsSnapshot1.AllFSEntries.ContainsKey(data.Key))
+                {
+                    FileInformation fi1 = fsSnapshot1.AllFSEntries[data.Key];
+                    FileInformation fi2 = data.Value;
+                    if (fi1.FileSize != fi2.FileSize)
+                    {
+                        Console.WriteLine("File size changed: {0}", fi2.FullPath);
+                    }
+                    if (fi1.LastAccessTime != fi2.LastAccessTime)
+                    {
+                        Console.WriteLine("Last access time changed: {0}", fi2.FullPath);
+                    }
+                    if (fi1.LastWriteTime != fi2.LastWriteTime)
+                    {
+                        Console.WriteLine("Last write time changed: {0}", fi2.FullPath);
+                    }
+                    if (fi1.FileAttribute != fi2.FileAttribute)
+                    {
+                        Console.WriteLine("File Attribute changed: {0}", fi2.FullPath);
+                    }
+                }
+            });
+            return "";
         }
     }
 

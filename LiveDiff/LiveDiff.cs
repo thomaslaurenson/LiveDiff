@@ -70,6 +70,9 @@ namespace LiveDiff
 
             // SNAPSHOT ONE:
 
+            Console.WriteLine(">>> Press any key to take Snapshot1...");
+            Console.ReadKey();
+
             Stopwatch watch = new Stopwatch();
             watch.Start();
             
@@ -93,7 +96,28 @@ namespace LiveDiff
             //    Console.WriteLine();
             //}
 
-            Console.WriteLine(">>> FileSystemEnumerator finished.");
+            // SNAPSHOT TWO:
+
+            Console.WriteLine(">>> Press any key to take Snapshot2...");
+            Console.ReadKey();
+
+            watch.Start();
+
+            // Enumerate the file system
+            FileSystemSnapshot fsSnapshot2 = new FileSystemSnapshot(path);
+            while (!fsSnapshot2.GetFileSystemSnapshot(path))
+            {
+                Thread.Sleep(1000);
+            }
+
+            watch.Stop();
+            Console.WriteLine("  > Time elapsed: {0}", watch.Elapsed);
+
+            Console.WriteLine("  > Dir count: {0}", fsSnapshot2.AllDirs.Count);
+            Console.WriteLine("  > Fis count: {0}", fsSnapshot2.AllFiles.Count);
+
+            // Compared the two file system snapshots
+            FileSystemSnapshot.CompareFileSystemSnapshots(fsSnapshot1, fsSnapshot2);
         }
     }
 }
